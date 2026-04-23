@@ -55,7 +55,7 @@ export function ImageEditor() {
   // Pre-load the frame SVG once
   useEffect(() => {
     const img = new Image();
-    img.src = '/shining-frame.svg';
+    img.src = `${import.meta.env.BASE_URL}shining-frame.svg`;
     img.onload = () => {
       frameImgRef.current = img;
       render(hueRef.current, intensityRef.current, true);
