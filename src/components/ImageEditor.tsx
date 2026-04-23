@@ -4,12 +4,14 @@ import {
   drawCircularImage,
   applyIridescentEffect,
   drawFrame,
+  clampTransform,
   type PhotoTransform,
 } from '../lib/canvas';
 
 const CANVAS_SIZE = 600;
-const MIN_SCALE = 0.5;
+const MIN_SCALE = 1.0;  // never smaller than cover-fit — prevents empty edges
 const MAX_SCALE = 5;
+const STATIC_HUE = 45;  // fixed golden hue offset for the iridescent sheen
 
 export function ImageEditor() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,22 +20,16 @@ export function ImageEditor() {
   const photoImgRef = useRef<HTMLImageElement | null>(null);
 
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
-  const [intensity, setIntensity] = useState(0.6);
-  const intensityRef = useRef(0.6);
-  const [hueOffset, setHueOffset] = useState(0);
-  const [animating, setAnimating] = useState(true);
-  const [dragging, setDragging] = useState(false);
-  const [isPanning, setIsPanning] = useState(false);
-  const animFrameRef = useRef<number>(0);
-  const hueRef = useRef(0);
+  const [intensity, setIntensity] = useState(0.5);
+  const intensityRef = useRef(0.5);
+  const [dragging, setDragging] = useState(false);   // dropzone drag state
+  const [isPanning, setIsPanning] = useState(false); // canvas pan state
 
-  // Photo pan/zoom transform — stored in a ref so RAF reads latest without re-subscribing
   const transformRef = useRef<PhotoTransform>({ x: 0, y: 0, scale: 1 });
   const lastPointerRef = useRef({ x: 0, y: 0 });
-  // Touch pinch state
   const lastPinchDistRef = useRef<number | null>(null);
 
-  const render = useCallback((currentHue: number, currentIntensity: number, _trigger?: boolean) => {
+  const render = useCallback(() => {
     const canvas = canvasRef.current;
     const photo = photoImgRef.current;
     if (!canvas || !photo) return;
@@ -42,71 +38,43 @@ export function ImageEditor() {
 
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     drawCircularImage(ctx, photo, CANVAS_SIZE, CANVAS_SIZE, transformRef.current);
-    applyIridescentEffect(ctx, CANVAS_SIZE, CANVAS_SIZE, currentIntensity, currentHue);
+    applyIridescentEffect(ctx, CANVAS_SIZE, CANVAS_SIZE, intensityRef.current, STATIC_HUE);
     if (frameImgRef.current) {
       drawFrame(ctx, frameImgRef.current, CANVAS_SIZE, CANVAS_SIZE);
     }
   }, []);
 
-  // Load photo once when photoSrc changes; reset transform on new photo
+  // Load photo once on upload; reset transform
   useEffect(() => {
-    if (!photoSrc) {
-      photoImgRef.current = null;
-      return;
-    }
+    if (!photoSrc) { photoImgRef.current = null; return; }
     transformRef.current = { x: 0, y: 0, scale: 1 };
     const img = new Image();
-    img.onload = () => {
-      photoImgRef.current = img;
-      render(hueRef.current, intensityRef.current, true);
-    };
+    img.onload = () => { photoImgRef.current = img; render(); };
     img.src = photoSrc;
   }, [photoSrc, render]);
 
-  // Pre-load the frame SVG once
+  // Pre-load the Shining SVG frame
   useEffect(() => {
     const img = new Image();
     img.src = `${import.meta.env.BASE_URL}shining-frame.svg`;
-    img.onload = () => {
-      frameImgRef.current = img;
-      render(hueRef.current, intensityRef.current, true);
-    };
+    img.onload = () => { frameImgRef.current = img; render(); };
   }, [render]);
 
-  // Animation loop for hue rotation
-  useEffect(() => {
-    if (!animating || !photoSrc) {
-      cancelAnimationFrame(animFrameRef.current);
-      return;
-    }
-    let last = 0;
-    const tick = (t: number) => {
-      if (t - last > 30) {
-        hueRef.current = (hueRef.current + 1.2) % 360;
-        setHueOffset(hueRef.current);
-        render(hueRef.current, intensityRef.current);
-        last = t;
-      }
-      animFrameRef.current = requestAnimationFrame(tick);
-    };
-    animFrameRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [animating, photoSrc, render]);
+  // Re-render when intensity slider changes
+  useEffect(() => { render(); }, [intensity, render]);
 
-  // Static re-render when not animating
-  useEffect(() => {
-    if (!animating) render(hueRef.current, intensityRef.current);
-  }, [intensity, animating, render]);
+  // Clamp helper — reads current photo natural dimensions
+  const clamp = (t: PhotoTransform) => {
+    const img = photoImgRef.current;
+    if (!img) return t;
+    return clampTransform(t, img.naturalWidth, img.naturalHeight, CANVAS_SIZE);
+  };
 
-  // Convert display-space delta to canvas-space delta
+  // Convert display-space delta → canvas-space delta
   const toCanvasDelta = (dx: number, dy: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { dx, dy };
-    const rect = canvas.getBoundingClientRect();
-    return {
-      dx: (dx * CANVAS_SIZE) / rect.width,
-      dy: (dy * CANVAS_SIZE) / rect.height,
-    };
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { dx, dy };
+    return { dx: (dx * CANVAS_SIZE) / rect.width, dy: (dy * CANVAS_SIZE) / rect.height };
   };
 
   // --- Mouse drag ---
@@ -115,33 +83,26 @@ export function ImageEditor() {
     setIsPanning(true);
     lastPointerRef.current = { x: e.clientX, y: e.clientY };
   };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isPanning) return;
-    const rawDx = e.clientX - lastPointerRef.current.x;
-    const rawDy = e.clientY - lastPointerRef.current.y;
+    const { dx, dy } = toCanvasDelta(
+      e.clientX - lastPointerRef.current.x,
+      e.clientY - lastPointerRef.current.y,
+    );
     lastPointerRef.current = { x: e.clientX, y: e.clientY };
-    const { dx, dy } = toCanvasDelta(rawDx, rawDy);
-    transformRef.current = {
-      ...transformRef.current,
-      x: transformRef.current.x + dx,
-      y: transformRef.current.y + dy,
-    };
-    render(hueRef.current, intensityRef.current);
+    transformRef.current = clamp({ ...transformRef.current, x: transformRef.current.x + dx, y: transformRef.current.y + dy });
+    render();
   };
-
   const handleMouseUp = () => setIsPanning(false);
 
-  // --- Scroll to zoom ---
+  // --- Scroll zoom ---
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     if (!photoSrc) return;
     const factor = e.deltaY < 0 ? 1.08 : 0.93;
-    transformRef.current = {
-      ...transformRef.current,
-      scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, transformRef.current.scale * factor)),
-    };
-    render(hueRef.current, intensityRef.current);
+    const next = clamp({ ...transformRef.current, scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, transformRef.current.scale * factor)) });
+    transformRef.current = next;
+    render();
   };
 
   // --- Touch drag + pinch zoom ---
@@ -156,45 +117,37 @@ export function ImageEditor() {
       lastPinchDistRef.current = Math.hypot(dx, dy);
     }
   };
-
   const handleTouchMove = (e: React.TouchEvent) => {
     e.preventDefault();
     if (!photoSrc) return;
     if (e.touches.length === 1 && lastPinchDistRef.current === null) {
-      const rawDx = e.touches[0].clientX - lastPointerRef.current.x;
-      const rawDy = e.touches[0].clientY - lastPointerRef.current.y;
+      const { dx, dy } = toCanvasDelta(
+        e.touches[0].clientX - lastPointerRef.current.x,
+        e.touches[0].clientY - lastPointerRef.current.y,
+      );
       lastPointerRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      const { dx, dy } = toCanvasDelta(rawDx, rawDy);
-      transformRef.current = {
-        ...transformRef.current,
-        x: transformRef.current.x + dx,
-        y: transformRef.current.y + dy,
-      };
+      transformRef.current = clamp({ ...transformRef.current, x: transformRef.current.x + dx, y: transformRef.current.y + dy });
     } else if (e.touches.length === 2) {
       const dx = e.touches[1].clientX - e.touches[0].clientX;
       const dy = e.touches[1].clientY - e.touches[0].clientY;
       const dist = Math.hypot(dx, dy);
       if (lastPinchDistRef.current !== null) {
         const factor = dist / lastPinchDistRef.current;
-        transformRef.current = {
-          ...transformRef.current,
-          scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, transformRef.current.scale * factor)),
-        };
+        transformRef.current = clamp({ ...transformRef.current, scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, transformRef.current.scale * factor)) });
       }
       lastPinchDistRef.current = dist;
     }
-    render(hueRef.current, intensityRef.current);
+    render();
   };
-
   const handleTouchEnd = () => { lastPinchDistRef.current = null; };
 
+  // --- File handling ---
   const handleFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = (e) => setPhotoSrc(e.target?.result as string);
     reader.readAsDataURL(file);
   };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
@@ -218,6 +171,8 @@ export function ImageEditor() {
 
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto px-4">
+
+      {/* Upload zone */}
       <AnimatePresence>
         {!photoSrc && (
           <motion.div
@@ -266,6 +221,7 @@ export function ImageEditor() {
         )}
       </AnimatePresence>
 
+      {/* Canvas + controls */}
       <AnimatePresence>
         {photoSrc && (
           <motion.div
@@ -274,34 +230,33 @@ export function ImageEditor() {
             transition={{ duration: 0.4, ease: 'easeOut' }}
             className="flex flex-col items-center gap-6 w-full"
           >
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <canvas
-                ref={canvasRef}
-                width={CANVAS_SIZE}
-                height={CANVAS_SIZE}
-                aria-label="Profile photo preview with Shining frame"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onWheel={handleWheel}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                  borderRadius: '50%',
-                  width: 'min(90vw, 400px)',
-                  height: 'min(90vw, 400px)',
-                  cursor: isPanning ? 'grabbing' : 'grab',
-                  boxShadow: '0 0 60px hsla(40, 90%, 55%, 0.35), 0 0 120px hsla(40, 80%, 40%, 0.2)',
-                  touchAction: 'none',
-                }}
-              />
-            </div>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', margin: '-1rem 0 0' }}>
+            <canvas
+              ref={canvasRef}
+              width={CANVAS_SIZE}
+              height={CANVAS_SIZE}
+              aria-label="Profile photo preview with Shining frame"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={handleWheel}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              style={{
+                borderRadius: '50%',
+                width: 'min(90vw, 400px)',
+                height: 'min(90vw, 400px)',
+                cursor: isPanning ? 'grabbing' : 'grab',
+                boxShadow: '0 0 60px hsla(40, 90%, 55%, 0.35), 0 0 120px hsla(40, 80%, 40%, 0.2)',
+                touchAction: 'none',
+              }}
+            />
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: '-0.5rem' }}>
               Drag to reposition · Scroll or pinch to zoom
             </p>
 
+            {/* Controls card */}
             <div
               style={{
                 background: 'var(--color-surface)',
@@ -312,6 +267,7 @@ export function ImageEditor() {
               }}
               className="flex flex-col gap-5"
             >
+              {/* Intensity slider */}
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <label htmlFor="intensity-slider" style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
@@ -336,30 +292,7 @@ export function ImageEditor() {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <span style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
-                  Animate Rainbow
-                </span>
-                <button
-                  onClick={() => setAnimating((a) => !a)}
-                  aria-pressed={animating}
-                  aria-label="Animate rainbow effect"
-                  style={{
-                    background: animating ? 'var(--color-gold)' : 'var(--color-surface-2)',
-                    border: '1px solid var(--color-gold-dim)',
-                    borderRadius: '2rem',
-                    color: animating ? '#000' : 'var(--color-text-muted)',
-                    padding: '0.35rem 1rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {animating ? 'ON' : 'OFF'}
-                </button>
-              </div>
-
+              {/* Action buttons */}
               <div className="flex gap-3">
                 <button
                   onClick={() => setPhotoSrc(null)}

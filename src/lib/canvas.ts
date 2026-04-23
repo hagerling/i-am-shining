@@ -117,6 +117,30 @@ export function applyIridescentEffect(
 }
 
 /**
+ * Clamp the photo transform so the image always covers the full circle.
+ * Prevents dragging the photo so an edge is visible inside the circle.
+ */
+export function clampTransform(
+  transform: PhotoTransform,
+  imgNaturalW: number,
+  imgNaturalH: number,
+  canvasSize: number,
+): PhotoTransform {
+  const baseScale = Math.max(canvasSize / imgNaturalW, canvasSize / imgNaturalH);
+  const finalScale = baseScale * transform.scale;
+  const sw = imgNaturalW * finalScale;
+  const sh = imgNaturalH * finalScale;
+  // Max offset = how far the image extends beyond the circle in each direction
+  const maxX = Math.max(0, (sw - canvasSize) / 2);
+  const maxY = Math.max(0, (sh - canvasSize) / 2);
+  return {
+    scale: transform.scale,
+    x: Math.max(-maxX, Math.min(maxX, transform.x)),
+    y: Math.max(-maxY, Math.min(maxY, transform.y)),
+  };
+}
+
+/**
  * Draw the Shining SVG frame on top of everything.
  * frameImg must be a loaded HTMLImageElement pointing at /shining-frame.svg.
  */

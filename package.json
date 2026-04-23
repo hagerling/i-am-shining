@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "fetch-posts": "node scripts/fetch-posts.mjs",
+    "fetch-linkedin": "node scripts/fetch-linkedin.mjs",
     "deploy": "lftp -e \"mirror -R --delete --exclude .DS_Store dist/ /hagerling.se/public_html/shining/; quit\" -u hagerling.se,hagerling80 ftpcluster.loopia.se"
   },
   "vitest": {
@@ -35,6 +36,7 @@
     "@vitest/ui": "^4.1.5",
     "fast-xml-parser": "^5.7.1",
     "jsdom": "^29.0.2",
+    "playwright": "^1.59.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   }
