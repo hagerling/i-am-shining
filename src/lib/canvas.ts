@@ -34,31 +34,39 @@ export function buildFrameDrawParams(
   };
 }
 
+export interface PhotoTransform {
+  x: number;   // pixel offset from center, in canvas coordinates
+  y: number;
+  scale: number; // multiplier on top of cover-fit base scale
+}
+
 /**
  * Draw the user's image onto the canvas, cropped to a circle.
- * Call this first before any overlays.
+ * transform lets the user drag/zoom the photo within the frame.
  */
 export function drawCircularImage(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   canvasW: number,
   canvasH: number,
+  transform: PhotoTransform = { x: 0, y: 0, scale: 1 },
 ): void {
   const size = Math.min(canvasW, canvasH);
-  const x = (canvasW - size) / 2;
-  const y = (canvasH - size) / 2;
+  const cx = canvasW / 2;
+  const cy = canvasH / 2;
 
   ctx.save();
   ctx.beginPath();
-  ctx.arc(canvasW / 2, canvasH / 2, size / 2, 0, Math.PI * 2);
+  ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
   ctx.clip();
 
-  // Cover-fit the source image into the circle
-  const scale = Math.max(size / img.naturalWidth, size / img.naturalHeight);
-  const sw = img.naturalWidth * scale;
-  const sh = img.naturalHeight * scale;
-  const sx = x + (size - sw) / 2;
-  const sy = y + (size - sh) / 2;
+  // Cover-fit base, then apply user scale on top
+  const baseScale = Math.max(size / img.naturalWidth, size / img.naturalHeight);
+  const finalScale = baseScale * transform.scale;
+  const sw = img.naturalWidth * finalScale;
+  const sh = img.naturalHeight * finalScale;
+  const sx = cx - sw / 2 + transform.x;
+  const sy = cy - sh / 2 + transform.y;
 
   ctx.drawImage(img, sx, sy, sw, sh);
   ctx.restore();

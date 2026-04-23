@@ -4,9 +4,12 @@ import {
   drawCircularImage,
   applyIridescentEffect,
   drawFrame,
+  type PhotoTransform,
 } from '../lib/canvas';
 
 const CANVAS_SIZE = 600;
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 5;
 
 export function ImageEditor() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -20,8 +23,15 @@ export function ImageEditor() {
   const [hueOffset, setHueOffset] = useState(0);
   const [animating, setAnimating] = useState(true);
   const [dragging, setDragging] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
   const animFrameRef = useRef<number>(0);
   const hueRef = useRef(0);
+
+  // Photo pan/zoom transform — stored in a ref so RAF reads latest without re-subscribing
+  const transformRef = useRef<PhotoTransform>({ x: 0, y: 0, scale: 1 });
+  const lastPointerRef = useRef({ x: 0, y: 0 });
+  // Touch pinch state
+  const lastPinchDistRef = useRef<number | null>(null);
 
   const render = useCallback((currentHue: number, currentIntensity: number, _trigger?: boolean) => {
     const canvas = canvasRef.current;
@@ -31,19 +41,20 @@ export function ImageEditor() {
     if (!ctx) return;
 
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    drawCircularImage(ctx, photo, CANVAS_SIZE, CANVAS_SIZE);
+    drawCircularImage(ctx, photo, CANVAS_SIZE, CANVAS_SIZE, transformRef.current);
     applyIridescentEffect(ctx, CANVAS_SIZE, CANVAS_SIZE, currentIntensity, currentHue);
     if (frameImgRef.current) {
       drawFrame(ctx, frameImgRef.current, CANVAS_SIZE, CANVAS_SIZE);
     }
   }, []);
 
-  // Load photo once when photoSrc changes
+  // Load photo once when photoSrc changes; reset transform on new photo
   useEffect(() => {
     if (!photoSrc) {
       photoImgRef.current = null;
       return;
     }
+    transformRef.current = { x: 0, y: 0, scale: 1 };
     const img = new Image();
     img.onload = () => {
       photoImgRef.current = img;
@@ -86,6 +97,96 @@ export function ImageEditor() {
   useEffect(() => {
     if (!animating) render(hueRef.current, intensityRef.current);
   }, [intensity, animating, render]);
+
+  // Convert display-space delta to canvas-space delta
+  const toCanvasDelta = (dx: number, dy: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { dx, dy };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      dx: (dx * CANVAS_SIZE) / rect.width,
+      dy: (dy * CANVAS_SIZE) / rect.height,
+    };
+  };
+
+  // --- Mouse drag ---
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!photoSrc) return;
+    setIsPanning(true);
+    lastPointerRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    const rawDx = e.clientX - lastPointerRef.current.x;
+    const rawDy = e.clientY - lastPointerRef.current.y;
+    lastPointerRef.current = { x: e.clientX, y: e.clientY };
+    const { dx, dy } = toCanvasDelta(rawDx, rawDy);
+    transformRef.current = {
+      ...transformRef.current,
+      x: transformRef.current.x + dx,
+      y: transformRef.current.y + dy,
+    };
+    render(hueRef.current, intensityRef.current);
+  };
+
+  const handleMouseUp = () => setIsPanning(false);
+
+  // --- Scroll to zoom ---
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    if (!photoSrc) return;
+    const factor = e.deltaY < 0 ? 1.08 : 0.93;
+    transformRef.current = {
+      ...transformRef.current,
+      scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, transformRef.current.scale * factor)),
+    };
+    render(hueRef.current, intensityRef.current);
+  };
+
+  // --- Touch drag + pinch zoom ---
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!photoSrc) return;
+    if (e.touches.length === 1) {
+      lastPointerRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastPinchDistRef.current = null;
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      lastPinchDistRef.current = Math.hypot(dx, dy);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!photoSrc) return;
+    if (e.touches.length === 1 && lastPinchDistRef.current === null) {
+      const rawDx = e.touches[0].clientX - lastPointerRef.current.x;
+      const rawDy = e.touches[0].clientY - lastPointerRef.current.y;
+      lastPointerRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      const { dx, dy } = toCanvasDelta(rawDx, rawDy);
+      transformRef.current = {
+        ...transformRef.current,
+        x: transformRef.current.x + dx,
+        y: transformRef.current.y + dy,
+      };
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      const dist = Math.hypot(dx, dy);
+      if (lastPinchDistRef.current !== null) {
+        const factor = dist / lastPinchDistRef.current;
+        transformRef.current = {
+          ...transformRef.current,
+          scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, transformRef.current.scale * factor)),
+        };
+      }
+      lastPinchDistRef.current = dist;
+    }
+    render(hueRef.current, intensityRef.current);
+  };
+
+  const handleTouchEnd = () => { lastPinchDistRef.current = null; };
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
@@ -178,14 +279,28 @@ export function ImageEditor() {
                 ref={canvasRef}
                 width={CANVAS_SIZE}
                 height={CANVAS_SIZE}
+                aria-label="Profile photo preview with Shining frame"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onWheel={handleWheel}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 style={{
                   borderRadius: '50%',
                   width: 'min(90vw, 400px)',
                   height: 'min(90vw, 400px)',
+                  cursor: isPanning ? 'grabbing' : 'grab',
                   boxShadow: '0 0 60px hsla(40, 90%, 55%, 0.35), 0 0 120px hsla(40, 80%, 40%, 0.2)',
+                  touchAction: 'none',
                 }}
               />
             </div>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', margin: '-1rem 0 0' }}>
+              Drag to reposition · Scroll or pinch to zoom
+            </p>
 
             <div
               style={{
