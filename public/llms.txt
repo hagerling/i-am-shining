@@ -1,0 +1,12 @@
+# Shining
+
+A web tool for creating 70s-inspired glowing profile pictures.
+
+## What it does
+- Upload a profile photo
+- Apply the Shining ring frame as a watermark overlay
+- Add an iridescent oil-slick / disco glow effect
+- Download the result as a PNG
+
+## Brand
+#Shining — 70s disco gold aesthetic

@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-gold: #daa520;
+    --color-gold-light: #ffd700;
+    --color-gold-dim: #b8860b;
+    --color-amber: #ff9f00;
+    --color-bg: #0c0700;
+    --color-surface: #1a0f02;
+    --color-surface-2: #241505;
+    --color-text: #f5e6c8;
+    --color-text-muted: #a08050;
+    --radius-card: 1.5rem;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  ::selection {
+    background: var(--color-gold);
+    color: #000;
+  }
+}
