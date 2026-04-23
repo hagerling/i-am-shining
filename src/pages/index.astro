@@ -1,17 +1,102 @@
 ---
-
+import Layout from '../layouts/Layout.astro';
+import { ImageEditor } from '../components/ImageEditor';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout>
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-badge">#shining</div>
+        <h1>Make Your Profile&nbsp;<em>Glow</em></h1>
+        <p class="hero-sub">
+          Upload a photo. Apply the Shining frame. Download your disco-era masterpiece.
+        </p>
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <ImageEditor client:load />
+    </section>
+
+    <footer class="site-footer">
+      <p>#shining &mdash; keep it golden</p>
+    </footer>
+  </main>
+</Layout>
+
+<style>
+  main {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero {
+    width: 100%;
+    padding: 5rem 1rem 3rem;
+    text-align: center;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, hsla(40, 80%, 30%, 0.25) 0%, transparent 70%);
+  }
+
+  .hero-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1.08;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  h1 em {
+    font-style: italic;
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-amber));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    max-width: 440px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .editor-section {
+    width: 100%;
+    max-width: 700px;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .site-footer {
+    padding: 2rem;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+</style>
