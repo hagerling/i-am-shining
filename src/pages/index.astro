@@ -1,6 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { ImageEditor } from '../components/ImageEditor';
+import { SocialFeed } from '../components/SocialFeed';
+import postsData from '../data/social-posts.json';
+
+const linkedinPosts = postsData.posts.filter((p) => p.platform === 'linkedin');
 ---
 
 <Layout>
@@ -18,6 +22,10 @@ import { ImageEditor } from '../components/ImageEditor';
     <section class="editor-section">
       <ImageEditor client:load />
     </section>
+
+    <div class="divider"></div>
+
+    <SocialFeed linkedinPosts={linkedinPosts} client:load />
 
     <footer class="site-footer">
       <p>#shining &mdash; keep it golden</p>
@@ -90,6 +98,14 @@ import { ImageEditor } from '../components/ImageEditor';
     width: 100%;
     max-width: 700px;
     padding: 2rem 1rem 4rem;
+  }
+
+  .divider {
+    width: 100%;
+    max-width: 700px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-gold-dim), transparent);
+    margin: 0 auto;
   }
 
   .site-footer {
