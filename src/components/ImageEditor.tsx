@@ -12,40 +12,55 @@ export function ImageEditor() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const frameImgRef = useRef<HTMLImageElement | null>(null);
+  const photoImgRef = useRef<HTMLImageElement | null>(null);
 
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(0.6);
+  const intensityRef = useRef(0.6);
   const [hueOffset, setHueOffset] = useState(0);
   const [animating, setAnimating] = useState(true);
   const [dragging, setDragging] = useState(false);
   const animFrameRef = useRef<number>(0);
   const hueRef = useRef(0);
 
-  // Pre-load the frame SVG once
-  useEffect(() => {
-    const img = new Image();
-    img.src = '/shining-frame.svg';
-    img.onload = () => { frameImgRef.current = img; };
-  }, []);
-
-  const render = useCallback((currentHue: number, currentIntensity: number, src: string | null) => {
+  const render = useCallback((currentHue: number, currentIntensity: number, _trigger?: boolean) => {
     const canvas = canvasRef.current;
-    if (!canvas || !src) return;
+    const photo = photoImgRef.current;
+    if (!canvas || !photo) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    const photo = new Image();
-    photo.onload = () => {
-      drawCircularImage(ctx, photo, CANVAS_SIZE, CANVAS_SIZE);
-      applyIridescentEffect(ctx, CANVAS_SIZE, CANVAS_SIZE, currentIntensity, currentHue);
-      if (frameImgRef.current) {
-        drawFrame(ctx, frameImgRef.current, CANVAS_SIZE, CANVAS_SIZE);
-      }
-    };
-    photo.src = src;
+    drawCircularImage(ctx, photo, CANVAS_SIZE, CANVAS_SIZE);
+    applyIridescentEffect(ctx, CANVAS_SIZE, CANVAS_SIZE, currentIntensity, currentHue);
+    if (frameImgRef.current) {
+      drawFrame(ctx, frameImgRef.current, CANVAS_SIZE, CANVAS_SIZE);
+    }
   }, []);
+
+  // Load photo once when photoSrc changes
+  useEffect(() => {
+    if (!photoSrc) {
+      photoImgRef.current = null;
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      photoImgRef.current = img;
+      render(hueRef.current, intensityRef.current, true);
+    };
+    img.src = photoSrc;
+  }, [photoSrc, render]);
+
+  // Pre-load the frame SVG once
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/shining-frame.svg';
+    img.onload = () => {
+      frameImgRef.current = img;
+      render(hueRef.current, intensityRef.current, true);
+    };
+  }, [render]);
 
   // Animation loop for hue rotation
   useEffect(() => {
@@ -58,19 +73,19 @@ export function ImageEditor() {
       if (t - last > 30) {
         hueRef.current = (hueRef.current + 1.2) % 360;
         setHueOffset(hueRef.current);
-        render(hueRef.current, intensity, photoSrc);
+        render(hueRef.current, intensityRef.current);
         last = t;
       }
       animFrameRef.current = requestAnimationFrame(tick);
     };
     animFrameRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [animating, photoSrc, intensity, render]);
+  }, [animating, photoSrc, render]);
 
   // Static re-render when not animating
   useEffect(() => {
-    if (!animating) render(hueOffset, intensity, photoSrc);
-  }, [intensity, hueOffset, animating, photoSrc, render]);
+    if (!animating) render(hueRef.current, intensityRef.current);
+  }, [intensity, animating, render]);
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
@@ -96,7 +111,7 @@ export function ImageEditor() {
       a.href = url;
       a.download = 'shining-profile.png';
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     }, 'image/png');
   };
 
@@ -112,6 +127,9 @@ export function ImageEditor() {
             className="w-full"
           >
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Upload profile photo — click or drag and drop"
               style={{
                 border: `2px dashed ${dragging ? 'var(--color-gold-light)' : 'var(--color-gold-dim)'}`,
                 borderRadius: 'var(--radius-card)',
@@ -121,6 +139,7 @@ export function ImageEditor() {
                 transition: 'border-color 0.2s, background 0.2s',
               }}
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
@@ -180,7 +199,7 @@ export function ImageEditor() {
             >
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
-                  <label style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
+                  <label htmlFor="intensity-slider" style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
                     Shine Intensity
                   </label>
                   <span style={{ color: 'var(--color-gold)', fontSize: '0.875rem' }}>
@@ -188,11 +207,16 @@ export function ImageEditor() {
                   </span>
                 </div>
                 <input
+                  id="intensity-slider"
                   type="range"
                   min={0}
                   max={100}
                   value={Math.round(intensity * 100)}
-                  onChange={(e) => setIntensity(Number(e.target.value) / 100)}
+                  onChange={(e) => {
+                    const v = Number(e.target.value) / 100;
+                    setIntensity(v);
+                    intensityRef.current = v;
+                  }}
                   style={{ accentColor: 'var(--color-gold)', width: '100%' }}
                 />
               </div>
@@ -203,6 +227,8 @@ export function ImageEditor() {
                 </span>
                 <button
                   onClick={() => setAnimating((a) => !a)}
+                  aria-pressed={animating}
+                  aria-label="Animate rainbow effect"
                   style={{
                     background: animating ? 'var(--color-gold)' : 'var(--color-surface-2)',
                     border: '1px solid var(--color-gold-dim)',
