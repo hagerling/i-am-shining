@@ -494,9 +494,8 @@ export function ImageEditor() {
   return (
     <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto px-4">
 
-      {/* Upload zone + Canvas share the same AnimatePresence so the
-          incoming canvas waits for the outgoing dropzone to finish animating.
-          Without mode="wait" they briefly coexist and the page height jumps. */}
+      {/* Fixed-size slot — dropzone and canvas always occupy this exact space */}
+      <div style={{ width: 'min(90vw, 400px)', height: 'min(90vw, 400px)', position: 'relative', flexShrink: 0 }}>
       <AnimatePresence mode="wait" initial={false}>
         {!(photoSrc && bannerReady) && (
           <motion.div
@@ -505,15 +504,15 @@ export function ImageEditor() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            style={{ position: 'absolute', inset: 0 }}
           >
             <div
               role="button"
               tabIndex={0}
               aria-label="Upload profile photo — click or drag and drop"
               style={{
-                width: 'min(90vw, 400px)',
-                height: 'min(90vw, 400px)',
+                width: '100%',
+                height: '100%',
                 borderRadius: '50%',
                 overflow: 'hidden',
                 position: 'relative',
@@ -574,32 +573,10 @@ export function ImageEditor() {
                 </p>
               </div>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-            />
-            {fileError && (
-              <p
-                role="alert"
-                style={{
-                  marginTop: '1rem',
-                  color: '#ff6b6b',
-                  fontSize: '0.875rem',
-                  textAlign: 'center',
-                  maxWidth: '320px',
-                }}
-              >
-                {fileError}
-              </p>
-            )}
           </motion.div>
         )}
 
-        {/* Canvas + controls — mounted only once the banner is ready, so
-            the profile picture and banner appear in sync. */}
+        {/* Canvas — same fixed slot, position: absolute fills it exactly */}
         {photoSrc && bannerReady && (
           <motion.div
             key="editor"
@@ -607,22 +584,17 @@ export function ImageEditor() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="flex flex-col items-center gap-6 w-full"
+            style={{ position: 'absolute', inset: 0 }}
           >
-            {/* Canvas + idle-img overlay + drop overlay share this wrapper.
-                useGesture attaches its listeners to this ref, so whichever
-                child is on top (canvas during interaction, img when idle)
-                routes gestures to the same handlers. */}
             <div
               ref={wrapperRef}
               className="profile-canvas-wrapper"
               style={{
                 position: 'relative',
-                flexShrink: 0,
-                // Keep profile pic visually above the banner if they overlap
-                // (banner is portaled to page top but may extend down)
+                width: '100%',
+                height: '100%',
                 zIndex: 5,
-                touchAction: 'none',      // disable native scroll/zoom on this subtree
+                touchAction: 'none',
                 userSelect: 'none',
               }}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -641,8 +613,8 @@ export function ImageEditor() {
                 aria-label="Profile photo preview with Shining frame"
                 style={{
                   borderRadius: '50%',
-                  width: 'min(90vw, 400px)',
-                  height: 'min(90vw, 400px)',
+                  width: '100%',
+                  height: '100%',
                   cursor: dragOver ? 'copy' : isInteracting ? 'grabbing' : 'grab',
                   boxShadow: dragOver
                     ? '0 0 60px hsla(40, 90%, 65%, 0.7), 0 0 120px hsla(40, 80%, 50%, 0.4)'
@@ -663,8 +635,8 @@ export function ImageEditor() {
                     position: 'absolute',
                     top: 0,
                     left: 0,
-                    width: 'min(90vw, 400px)',
-                    height: 'min(90vw, 400px)',
+                    width: '100%',
+                    height: '100%',
                     borderRadius: '50%',
                     pointerEvents: isInteracting ? 'none' : 'auto',
                     opacity: isInteracting ? 0 : 1,
@@ -701,19 +673,45 @@ export function ImageEditor() {
                 </div>
               )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </div>{/* end fixed-size slot */}
 
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: '1.5rem' }}>
+      {/* File input — always rendered, hidden */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+
+      {/* Error message */}
+      {fileError && (
+        <p role="alert" style={{ color: '#ff6b6b', fontSize: '0.875rem', textAlign: 'center', maxWidth: '320px' }}>
+          {fileError}
+        </p>
+      )}
+
+      {/* Hint + controls — appear below the fixed circle */}
+      <AnimatePresence>
+        {photoSrc && bannerReady && (
+          <motion.div
+            key="controls"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, delay: 0.2 }}
+            className="flex flex-col items-center gap-5 w-full"
+          >
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
               Drag or scroll to pan · Pinch or ⌘/Ctrl + scroll to zoom · Drop a new photo to replace
             </p>
-
-            {/* Controls card */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.35, delay: 0.25 }}
+            <div
               style={{
                 background: 'transparent',
-                padding: '1.5rem 0',
+                padding: '0.5rem 0',
                 width: '100%',
               }}
               className="flex flex-col gap-5"
@@ -807,8 +805,7 @@ export function ImageEditor() {
                   On iPhone you can also <strong style={{ color: 'var(--color-gold)' }}>long-press the image</strong> and tap <strong style={{ color: 'var(--color-gold)' }}>Save to Photos</strong>.
                 </p>
               )}
-            </motion.div>
-
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
