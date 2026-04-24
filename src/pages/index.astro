@@ -10,14 +10,16 @@ import testimonials from '../data/testimonials.json';
   <DiscoBall client:only="react" />
 
   <main id="main-content" tabindex="-1">
-    <div class="hero-wrapper">
-      <div id="banner-slot"></div>
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-inner">
-          <h1 id="hero-title">I am <em>#Shining</em></h1>
-        </div>
-      </section>
-    </div>
+    {/* Banner lives behind everything as an absolute layer — it never
+        pushes the hero text or profile circle, so they stay in exactly
+        the same position whether a photo is loaded or not. */}
+    <div id="banner-slot"></div>
+
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-inner">
+        <h1 id="hero-title">I am <em>#Shining</em></h1>
+      </div>
+    </section>
 
     <section class="editor-section reveal" aria-label="Profile photo editor">
       <ImageEditor client:load />
@@ -104,26 +106,33 @@ import testimonials from '../data/testimonials.json';
     opacity: 1;
   }
 
-  /* ── Hero wrapper — banner + heading share one positioned container ── */
-  .hero-wrapper {
-    position: relative;
+  /* ── Banner layer ───────────────────────────
+     Absolute at the top of <main>, behind everything. Never affects flow,
+     so the hero text and profile circle never shift when a photo loads. */
+  #banner-slot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%;
+    z-index: 0;
+    pointer-events: none;
   }
 
-  /* When a photo is loaded, the heading overlays the banner */
+  /* Re-enable interactions on anything inside the banner (e.g. dropdown menu) */
+  #banner-slot > * {
+    pointer-events: auto;
+  }
+
+  /* When a photo is loaded, the hero text turns white for contrast on banner */
   .has-photo .hero {
-    position: absolute;
-    inset: 0;
-    padding: 0;
     background: transparent;
-    z-index: 10;
-    pointer-events: none;
   }
 
   .has-photo .hero h1 {
     color: #fff;
     text-shadow: 0 2px 20px rgba(0,0,0,0.55);
-    transition: color 0.4s, text-shadow 0.4s;
+    transition: color 0.4s ease, text-shadow 0.4s ease;
   }
 
   .has-photo .hero h1 em {
@@ -145,11 +154,9 @@ import testimonials from '../data/testimonials.json';
   }
 
   .hero {
+    position: relative;
+    z-index: 10;
     width: 100%;
-    /* Match the banner's dimensions (aspect 4:1, min 200px) so that when a
-     * photo is uploaded, the hero can collapse in lock-step with the banner
-     * expanding — no net page-height change during the transition. */
-    height: auto;
     padding: 3.5rem 1rem 2.5rem;
     display: flex;
     flex-direction: column;
@@ -157,6 +164,7 @@ import testimonials from '../data/testimonials.json';
     justify-content: center;
     text-align: center;
     background: radial-gradient(ellipse 80% 60% at 50% 50%, hsla(40, 80%, 30%, 0.25) 0%, transparent 70%);
+    transition: background 0.4s ease;
   }
 
   .hero-inner {
@@ -237,6 +245,8 @@ import testimonials from '../data/testimonials.json';
 
 
   .editor-section {
+    position: relative;
+    z-index: 10;
     width: 100%;
     max-width: 700px;
     padding: 0.5rem 1rem 4rem;
