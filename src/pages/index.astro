@@ -157,11 +157,18 @@ import testimonials from '../data/testimonials.json';
     position: relative;
     z-index: 10;
     width: 100%;
-    padding: 3.5rem 1rem 2.5rem;
+    /* Reserve EXACTLY the banner's top area (the part above the profile overlap).
+     * Matches HeaderGenerator's banner-preview where the banner extends from
+     * 0 to max(25vw,200px) + min(45vw,200px) — i.e. from top of page to the
+     * middle of the profile image. By fixing this height, the profile circle
+     * (the first element of editor-section below) starts at exactly
+     * max(25vw, 200px), so its vertical centre lands at the banner's bottom. */
+    height: max(25vw, 200px);
+    padding: 3rem 1rem 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     background: radial-gradient(ellipse 80% 60% at 50% 50%, hsla(40, 80%, 30%, 0.25) 0%, transparent 70%);
     transition: background 0.4s ease;
@@ -249,7 +256,9 @@ import testimonials from '../data/testimonials.json';
     z-index: 10;
     width: 100%;
     max-width: 700px;
-    padding: 0.5rem 1rem 4rem;
+    /* No top padding — the profile circle must start at exactly
+     * max(25vw, 200px) from page top (i.e. immediately after .hero). */
+    padding: 0 1rem 4rem;
   }
 
 
