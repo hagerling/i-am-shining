@@ -176,9 +176,9 @@ export function ImageEditor() {
       <AnimatePresence>
         {!photoSrc && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="w-full"
           >
@@ -224,13 +224,11 @@ export function ImageEditor() {
       {/* Canvas + controls */}
       <AnimatePresence>
         {photoSrc && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+          <div className="flex flex-col items-center gap-6 w-full">
+            <motion.canvas
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="flex flex-col items-center gap-6 w-full"
-          >
-            <canvas
               ref={canvasRef}
               width={CANVAS_SIZE}
               height={CANVAS_SIZE}
@@ -257,7 +255,10 @@ export function ImageEditor() {
             </p>
 
             {/* Controls card */}
-            <div
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.35, delay: 0.25 }}
               style={{
                 background: 'var(--color-surface)',
                 border: '1px solid var(--color-gold-dim)',
@@ -327,8 +328,8 @@ export function ImageEditor() {
                   ↓ Download PNG
                 </button>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
