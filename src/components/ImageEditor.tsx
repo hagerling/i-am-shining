@@ -824,14 +824,14 @@ export function ImageEditor() {
                   style={{
                     width: '100%',
                     background: 'transparent',
-                    border: '1px solid rgba(184,134,11,0.45)',
-                    borderRadius: '0.75rem',
+                    border: '1px solid rgba(184,134,11,0.5)',
+                    borderRadius: '0.85rem',
                     color: 'var(--color-gold-light)',
-                    padding: '0.7rem 0.9rem',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
+                    padding: '1rem 1.1rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
                     cursor: 'pointer',
-                    letterSpacing: '0.02em',
+                    letterSpacing: '0.03em',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -840,7 +840,7 @@ export function ImageEditor() {
                     lineHeight: 1,
                   }}
                 >
-                  <DownloadSimple size={16} weight="bold" />
+                  <DownloadSimple size={20} weight="bold" />
                   <span>Download header image</span>
                   <span
                     aria-hidden
