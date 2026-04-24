@@ -154,101 +154,8 @@
     transform: scale(1.12);
   }
 
-  /* ── "Has photo" transition: banner expands and hero collapses in lock-step.
-   *  Hero and banner share the same size (aspect 4:1, min 200px), so their
-   *  swap produces zero net page-height change. Everything below (profile
-   *  pic, subtitle, testimonials) stays put while hero fades out and banner
-   *  fades in. Then the profile pic slides up over the banner's bottom
-   *  edge via its own margin-top transition. */
-
-  /* Banner-slot is the portal container. It governs the LAYOUT height of the
-   * banner above the hero. We make the banner TALLER than the hero by one
-   * profile-pic radius, so its bottom edge reaches half-way down the photo.
-   *   banner_height = hero_height + pic_radius
-   *   profile-pic margin-top = -pic_radius  (overlap)
-   *   ⇒ pic_center Y = hero_height + pic_radius
-   * This is the same Y position as the dropzone's centre in step 1, so the
-   * circle never moves on screen. */
-  #banner-slot {
-    max-height: 0;
-    overflow: hidden;
-    /* Delay layout change until hero text has faded out (0.25s). Opacity is
-     * controlled on .banner-preview directly so the profile can appear first. */
-    transition: max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
-  }
-  .has-photo #banner-slot {
-    /* hero height + profile-pic radius */
-    max-height: calc(max(25vw, 200px) + min(45vw, 200px));
-  }
-
-  /* Hero text fades out fast (0.25s) with no movement. Layout collapse is
-   * delayed by 0.25s so the text is already invisible before anything moves. */
-  .hero {
-    max-height: max(25vw, 200px);
-    overflow: hidden;
-    transition: max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
-  }
-  .hero > * {
-    transition: opacity 0.25s ease;
-  }
-  .has-photo .hero {
-    max-height: 0;
-  }
-  .has-photo .hero > * {
-    opacity: 0;
-  }
-
-  /* Hero repeated BELOW the profile picture. Fades in with the banner (~0.6s
-   * delay) so text appears below the profile at the same time the banner does. */
-  .hero-below {
-    text-align: center;
-    padding: 2rem 1rem 0;
-    opacity: 0;
-    max-height: 0;
-    overflow: hidden;
-    transition:
-      opacity    0.50s ease 0.65s,
-      max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.65s;
-  }
-  .has-photo .hero-below {
-    opacity: 1;
-    max-height: 300px;
-  }
-  .hero-below .hero-badge {
-    margin-bottom: 0.6rem;
-  }
-  .hero-below-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    line-height: 1.1;
-    color: var(--color-text);
-    margin: 0;
-  }
-  .hero-below-title em {
-    font-style: italic;
-    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-amber));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Profile picture wrapper — STAYS in place across the dropzone↔canvas
-   * swap. In step 2 we pull it up by its own radius to overlap the banner's
-   * bottom edge; combined with the banner being taller by that same radius,
-   * the pic's centre Y is identical in both states. Linear interpolation
-   * of all three (hero shrink, banner-slot grow, margin-top negative)
-   * keeps the Y constant at every instant of the 0.6 s transition. */
-  .profile-canvas-wrapper {
-    margin-top: 0;
-    transition: margin-top 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
-  }
-  .has-photo .profile-canvas-wrapper {
-    margin-top: max(-45vw, -200px);
-  }
-
   /* Banner image starts hidden and fades in after the profile picture has
-   * appeared (~0.6s delay relative to has-photo). The slot controls layout
-   * height; the preview controls its own opacity independently. */
+   * appeared. */
   @keyframes banner-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -257,7 +164,7 @@
     opacity: 0;
   }
   .has-photo .banner-preview {
-    animation: banner-fade-in 0.5s ease 0.6s both;
+    animation: banner-fade-in 0.5s ease 0.4s both;
   }
 
   .skip-link {
