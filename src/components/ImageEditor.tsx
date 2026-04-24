@@ -488,15 +488,16 @@ export function ImageEditor() {
   // Banner canvas reference, kept up to date by HeaderGenerator's onCanvasReady.
   const bannerCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const handleDownload = () => {
-    const items: { canvas: HTMLCanvasElement; filename: string }[] = [];
+  const handleDownloadProfile = () => {
     if (canvasRef.current) {
-      items.push({ canvas: canvasRef.current, filename: 'shining-profile.png' });
+      saveCanvasImages([{ canvas: canvasRef.current, filename: 'shining-profile.png' }]);
     }
+  };
+
+  const handleDownloadHeader = () => {
     if (bannerCanvasRef.current) {
-      items.push({ canvas: bannerCanvasRef.current, filename: 'shining-banner.png' });
+      saveCanvasImages([{ canvas: bannerCanvasRef.current, filename: 'shining-banner.png' }]);
     }
-    if (items.length) saveCanvasImages(items);
   };
 
   return (
@@ -759,27 +760,12 @@ export function ImageEditor() {
                 />
               </div>
 
-              {/* Action buttons */}
-              <div className="flex gap-3">
+              {/* Action buttons — two gold downloads, side-by-side */}
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => setPhotoSrc(null)}
+                  onClick={handleDownloadHeader}
                   style={{
                     flex: 1,
-                    background: 'transparent',
-                    border: '1px solid rgba(184,134,11,0.3)',
-                    borderRadius: '0.75rem',
-                    color: 'var(--color-text-muted)',
-                    padding: '0.75rem',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Change Photo
-                </button>
-                <button
-                  onClick={handleDownload}
-                  style={{
-                    flex: 2,
                     background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
                     border: 'none',
                     borderRadius: '0.75rem',
@@ -798,9 +784,51 @@ export function ImageEditor() {
                   }}
                 >
                   <DownloadSimple size={18} weight="bold" />
-                  <span>Download</span>
+                  <span>Download header image</span>
+                </button>
+                <button
+                  onClick={handleDownloadProfile}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
+                    border: 'none',
+                    borderRadius: '0.75rem',
+                    color: '#000',
+                    padding: '0.75rem 0.9rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    letterSpacing: '0.03em',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1,
+                  }}
+                >
+                  <DownloadSimple size={18} weight="bold" />
+                  <span>Download profile picture</span>
                 </button>
               </div>
+
+              {/* Subtle text link to swap the photo */}
+              <button
+                onClick={() => setPhotoSrc(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                  margin: '0.25rem auto 0',
+                  padding: '0.25rem 0.5rem',
+                }}
+              >
+                Change photo
+              </button>
 
               {onIOS && (
                 <p style={{
