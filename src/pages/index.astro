@@ -167,6 +167,9 @@ import testimonials from '../data/testimonials.json';
     text-align: center;
     background: radial-gradient(ellipse 80% 60% at 50% 50%, hsla(40, 80%, 30%, 0.25) 0%, transparent 70%);
     transition: background 0.4s ease;
+    /* Hero is just text; let clicks pass through so the banner's corner
+     * buttons (refresh / download) aren't blocked. */
+    pointer-events: none;
   }
 
   .hero-inner {
