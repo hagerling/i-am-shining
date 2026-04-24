@@ -1,32 +1,56 @@
 ---
 import '../styles/global.css';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 interface Props {
   title?: string;
   description?: string;
+  canonical?: string;
 }
 
 const {
-  title = '#Shining — Make Your Profile Glow',
-  description = 'Upload your profile photo, apply the Shining frame, and download your glowing 70s-style profile picture.',
+  title = 'I am Shining — Make Your Profile Glow',
+  description = 'Upload your profile photo, apply the golden #Shining frame, and let your light shine. Join the movement.',
+  canonical,
 } = Astro.props;
 
-const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://shining.se');
+const siteUrl = 'https://i-am-shining.com';
+const ogImage = `${siteUrl}/og-image.svg`;
+const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonicalURL} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Preload above-the-fold assets for faster first paint -->
+    <link rel="preload" as="image" href="/shining-frame.png" fetchpriority="high" />
+
+    <!-- Theme color (browser chrome) -->
+    <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#0c0700" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fef8ed" />
 
     <!-- Open Graph -->
-    <meta property="og:title" content={title} />
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content={siteUrl} />
+    <meta property="og:title"       content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image"       content={ogImage} />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image"       content={ogImage} />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -37,8 +61,124 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://shining.
     />
 
     <title>{title}</title>
+
+    <!-- Robots / LLM crawling hints -->
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="keywords" content="shining profile picture, golden profile frame, LinkedIn banner generator, i am shining, #shining, golden crescent frame, kaleidoscope banner, profile picture editor" />
+    <meta name="author" content="Carl Hagerling" />
+
+    <!-- Structured data: WebApplication + WebSite + Organization -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": siteUrl + "#app",
+          "name": "I am Shining",
+          "url": siteUrl,
+          "description": description,
+          "applicationCategory": "LifestyleApplication",
+          "operatingSystem": "Web (any modern browser)",
+          "browserRequirements": "Requires JavaScript, HTML5 Canvas",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "featureList": [
+            "Upload a profile photo",
+            "Apply the golden #Shining crescent frame",
+            "Adjust iridescent shine intensity",
+            "Generate a kaleidoscope LinkedIn banner",
+            "Download as PNG — everything runs locally in the browser",
+            "Save directly to iPhone Photos library"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": siteUrl + "#website",
+          "url": siteUrl,
+          "name": "I am Shining",
+          "description": description,
+          "inLanguage": "en"
+        },
+        {
+          "@type": "Organization",
+          "@id": siteUrl + "#org",
+          "name": "I am Shining",
+          "url": siteUrl,
+          "logo": siteUrl + "/favicon.svg"
+        },
+        {
+          "@type": "FAQPage",
+          "@id": siteUrl + "#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is #Shining?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "#Shining is a movement for people who want to show up with energy, optimism, and a golden glow. Upgrade your profile picture with the radiant Shining frame and signal to the world that you're in your brightest season."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I add my Shining picture to LinkedIn?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "After downloading your PNG, go to your LinkedIn profile and click on your current profile photo. Select Change photo, upload the downloaded file, and use LinkedIn's built-in crop tool to position it. Your circular Shining frame will fit perfectly since the download is already cropped to a circle. Hit Apply and your golden profile is live."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Will the frame work on other platforms?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes — the downloaded PNG is a square image with a circular transparent background, which works on LinkedIn, X (Twitter), Instagram, Slack, GitHub, and most other platforms that support PNG uploads with transparency."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What size is the downloaded image?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The image downloads at 600×600 px, which is the recommended size for LinkedIn profile photos and meets the minimum requirements for most social platforms."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is my photo uploaded anywhere?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. Everything happens entirely in your browser — your photo is never sent to any server. The canvas processing, iridescent effect, and frame overlay are all done locally on your device."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I get the best result?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Use a photo where your face is centred and well-lit. After uploading, drag to reposition and scroll to zoom until your face sits comfortably inside the circular frame. Adjust the Shine Intensity slider to taste — around 40–60% tends to look natural while still catching the light."
+              }
+            }
+          ]
+        }
+      ]
+    })} />
+
+    <!-- Prevent flash of wrong theme: runs before paint.
+         Dark mode is the default — we only respect a stored user preference. -->
+    <script is:inline>
+      (function () {
+        var stored = localStorage.getItem('shining-theme');
+        document.documentElement.setAttribute('data-theme', stored || 'dark');
+      })();
+    </script>
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <nav class="site-nav" aria-label="Site navigation">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/about" class="nav-link">About</a>
+    </nav>
     <slot />
+    <ThemeToggle client:load />
   </body>
 </html>

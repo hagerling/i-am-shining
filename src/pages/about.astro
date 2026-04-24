@@ -1,0 +1,197 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="About — I am Shining"
+  description="The story behind #Shining — a movement for people who show up with energy, optimism, and a golden glow."
+  canonical="https://i-am-shining.com/about"
+>
+  <main id="main-content" tabindex="-1">
+    <section class="hero">
+      <div class="hero-inner">
+        <h1>About <em>#Shining</em></h1>
+      </div>
+    </section>
+
+    <article class="content">
+
+      <section class="block">
+        <h2>The movement</h2>
+        <p>
+          #Shining is for people who want to show up with energy, optimism, and a golden glow.
+          It started as a simple idea: your profile picture is the first thing the world sees —
+          why not make it radiant?
+        </p>
+        <p>
+          The golden crescent frame is a signal. It says you are in your brightest season,
+          that you choose to lead with warmth, and that you are not hiding your light.
+        </p>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="block">
+        <h2>How it started</h2>
+        <p>
+          Over a round of cold beers on a warm evening, a few friends got talking about how flat
+          the feed had started to feel — everyone posting the same corporate headshots, the same
+          polished smiles, none of the spark.
+        </p>
+        <p>
+          The conversation went somewhere brighter: what if a profile picture could remind you
+          to show up with a little more optimism? By the second pint there were sketches on a napkin.
+          By the next morning there was code.
+        </p>
+        <p>
+          Turns out an optimistic mindset is contagious — it spreads through every bling, every shine,
+          every tiny golden pixel. That's how this began, and it's why we still keep it simple,
+          playful, and free.
+        </p>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="block">
+        <h2>Privacy</h2>
+        <p>
+          Your photo never leaves your device. Everything — the canvas processing, the iridescent
+          effect, the frame overlay — runs entirely in your browser. There are no uploads,
+          no accounts, and no tracking.
+        </p>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="block">
+        <h2>Built by</h2>
+        <p>
+          Carl Hagerling — designer and developer based in Sweden.
+          The source code is open on <a href="https://github.com/carlhagerling/i-am-shining" class="gold-link">GitHub</a>.
+        </p>
+      </section>
+
+      <div class="cta-block">
+        <a href="/" class="cta-btn">Make your profile shine →</a>
+      </div>
+
+    </article>
+
+    <footer class="site-footer">
+      <p>#shining &mdash; keep it golden</p>
+    </footer>
+  </main>
+</Layout>
+
+<style>
+  main {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 5rem;
+  }
+
+  .hero {
+    width: 100%;
+    padding: 2.5rem 1rem 1.5rem;
+    text-align: center;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, hsla(40, 80%, 30%, 0.2) 0%, transparent 70%);
+  }
+
+  .hero-inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1.08;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  h1 em {
+    font-style: italic;
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-amber));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 640px;
+    padding: 2rem 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .block {
+    padding: 2rem 0;
+  }
+
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+  }
+
+  p {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1.75;
+    margin: 0 0 0.9rem;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-gold-dim), transparent);
+  }
+
+  .gold-link {
+    color: var(--color-gold-light);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .cta-block {
+    padding: 2.5rem 0 1rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light));
+    color: #000;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 0.85rem 2rem;
+    border-radius: 2rem;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: opacity 0.2s;
+  }
+
+  .cta-btn:hover {
+    opacity: 0.85;
+  }
+
+  .site-footer {
+    padding: 2rem;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+</style>
