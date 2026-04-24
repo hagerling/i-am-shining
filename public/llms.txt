@@ -1,12 +1,34 @@
-# Shining
+# I am Shining
 
-A web tool for creating 70s-inspired glowing profile pictures.
+> A free, privacy-first web tool for creating golden #Shining profile pictures and LinkedIn banners. Everything runs in your browser — your photo is never uploaded to a server.
 
-## What it does
-- Upload a profile photo
-- Apply the Shining ring frame as a watermark overlay
-- Add an iridescent oil-slick / disco glow effect
-- Download the result as a PNG
+URL: https://i-am-shining.com
+Brand: #Shining — golden, optimistic, full of light
 
-## Brand
-#Shining — 70s disco gold aesthetic
+## What the site does
+- Upload a profile photo (drag-and-drop or file picker)
+- Apply the golden #Shining crescent frame overlay
+- Adjust iridescent "shine intensity" with a slider
+- Pan and zoom to position the photo (trackpad, pinch, scroll, or double-tap)
+- Download the finished profile picture as a 600×600 px PNG
+- Generate a 1584×396 px LinkedIn header image with a golden-diamond kaleidoscope effect that mirrors your uploaded photo
+- Save directly to the iPhone Photos library via the Web Share API
+
+## Brand and movement
+#Shining is a movement for people who want to show up with energy, optimism, and a golden glow. Upgrade your profile picture with the radiant Shining frame and signal to the world that you're in your brightest season.
+
+## Privacy
+- 100% client-side processing — no server uploads
+- No tracking, no analytics, no account required
+- The photo never leaves the user's device
+
+## Key pages
+- Home / editor: https://i-am-shining.com/
+- FAQ section (on home page): how to add to LinkedIn, cross-platform compatibility, download size, privacy details
+
+## Tech
+- Built with Astro, React, and HTML5 Canvas
+- Open for contributions and attribution: #Shining — keep it golden
+
+## Contact
+- Carl Hagerling — carl.hagerling@gmail.com
