@@ -103,13 +103,10 @@ import testimonials from '../data/testimonials.json';
   /* ── Scroll reveal ───────────────────────── */
   .reveal {
     opacity: 0;
-    transform: translateY(36px);
-    transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
-                transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .reveal.is-visible {
     opacity: 1;
-    transform: none;
   }
 
   /* ── Page structure ───────────────────────── */
@@ -127,8 +124,8 @@ import testimonials from '../data/testimonials.json';
     /* Match the banner's dimensions (aspect 4:1, min 200px) so that when a
      * photo is uploaded, the hero can collapse in lock-step with the banner
      * expanding — no net page-height change during the transition. */
-    height: max(25vw, 200px);
-    padding: 1rem 1rem 0;
+    height: auto;
+    padding: 2.5rem 1rem 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
