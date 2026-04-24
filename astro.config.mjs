@@ -3,8 +3,8 @@ import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  site: 'https://hagerling.se',
-  base: '/shining',
+  site: 'https://i-am-shining.com',
+  base: '/',
   integrations: [react()],
   output: 'static',
   vite: {

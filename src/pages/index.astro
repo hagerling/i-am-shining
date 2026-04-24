@@ -116,12 +116,6 @@ import testimonials from '../data/testimonials.json';
     right: 0;
     width: 100%;
     z-index: 0;
-    pointer-events: none;
-  }
-
-  /* Re-enable interactions on anything inside the banner (e.g. dropdown menu) */
-  #banner-slot > * {
-    pointer-events: auto;
   }
 
   /* Banner height is set directly in HeaderGenerator.tsx so it correctly
@@ -361,12 +355,34 @@ import testimonials from '../data/testimonials.json';
     color: var(--color-gold-light);
   }
 
+  /* The <details> element hides non-summary children when closed.
+   * Force the answer to stay rendered (display: block) and animate its
+   * max-height + padding + opacity in/out via the [open] state. */
   .faq-answer {
+    display: block;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
     margin: 0;
-    padding: 0 0 1.5rem;
+    padding: 0;
     color: var(--color-text-muted);
     font-size: 0.95rem;
     line-height: 1.7;
+    transition:
+      max-height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+      padding    0.45s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity    0.30s ease;
+  }
+
+  .faq-item[open] .faq-answer {
+    /* Generous ceiling — actual content height is the visible bound. */
+    max-height: 800px;
+    padding: 0 0 1.5rem;
+    opacity: 1;
+    transition:
+      max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      padding    0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity    0.30s ease 0.1s;
   }
 
   .faq-answer strong {
