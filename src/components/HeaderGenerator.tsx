@@ -27,9 +27,14 @@ interface Props {
    *  "Download" action in the controls can save both the banner and the
    *  profile picture in one go. */
   onCanvasReady?: (canvas: HTMLCanvasElement) => void;
+  /** Hands the parent a function it can call to render a fresh banner
+   *  canvas with or without text. Used by the controls dropdown. */
+  onRendererReady?: (
+    renderBanner: (withText: boolean) => Promise<HTMLCanvasElement | null>,
+  ) => void;
 }
 
-export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady }: Props) {
+export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, onRendererReady }: Props) {
   // Canvas lives offscreen — we display the rendered result as an <img>
   // (via a blob URL) so iOS users can long-press → "Save to Photos".
   const canvasRef    = useRef<HTMLCanvasElement>(
@@ -46,6 +51,29 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady }
     if (imgUrl && onReady) onReady();
     if (imgUrl && onCanvasReady && canvasRef.current) onCanvasReady(canvasRef.current);
   }, [imgUrl, onReady, onCanvasReady]);
+
+  // Hand the parent a renderer it can call to produce a banner canvas
+  // (with or without text) on demand.
+  useEffect(() => {
+    if (!onRendererReady) return;
+    onRendererReady(async (withText: boolean) => {
+      if (!photoRef.current) return null;
+      if (typeof document !== 'undefined' && 'fonts' in document) {
+        try {
+          await document.fonts.load('italic 98px "DM Serif Display"');
+          await document.fonts.load('500 16px "DM Sans"');
+        } catch { /* fall back */ }
+      }
+      const tmp = document.createElement('canvas');
+      tmp.width = LI_W * SCALE;
+      tmp.height = LI_H * SCALE;
+      const tmpCtx = tmp.getContext('2d');
+      if (!tmpCtx) return null;
+      tmpCtx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+      renderLinkedInHeader(tmpCtx, LI_W, LI_H, photoRef.current, frameRef.current, optionsRef.current, withText);
+      return tmp;
+    });
+  }, [onRendererReady, imgUrl]);
   const [rendered,   setRendered]   = useState(false);
   const [generating, setGenerating] = useState(false);
   const [onIOS, setOnIOS] = useState(false);
