@@ -56,6 +56,66 @@ export function saveCanvasImage(
   }, 'image/png');
 }
 
+/**
+ * Save MULTIPLE canvases as PNG files.
+ * - On mobile (Web Share with files): a single share sheet listing all files,
+ *   so the user gets one prompt for "Save to Photos" that saves both.
+ * - On desktop: triggers sequential <a download> clicks; the browser saves each
+ *   file with its given filename.
+ */
+export async function saveCanvasImages(
+  items: { canvas: HTMLCanvasElement; filename: string }[],
+): Promise<void> {
+  if (!items.length) return;
+
+  // Convert all canvases to blobs in parallel
+  const files = await Promise.all(
+    items.map(
+      ({ canvas, filename }) =>
+        new Promise<File | null>((resolve) => {
+          canvas.toBlob((blob) => {
+            if (!blob) return resolve(null);
+            resolve(new File([blob], filename, { type: 'image/png' }));
+          }, 'image/png');
+        }),
+    ),
+  );
+  const validFiles = files.filter((f): f is File => f !== null);
+  if (!validFiles.length) return;
+
+  const isDesktop =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  if (
+    !isDesktop &&
+    typeof navigator !== 'undefined' &&
+    typeof navigator.canShare === 'function' &&
+    navigator.canShare({ files: validFiles })
+  ) {
+    try {
+      await navigator.share({ files: validFiles });
+      return;
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return;
+      // fall through to download
+    }
+  }
+
+  // Desktop / fallback: trigger each download sequentially with a small gap
+  for (const file of validFiles) {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Small gap so the browser doesn't drop the second download
+    await new Promise((r) => setTimeout(r, 150));
+  }
+}
+
 /** True when we're on an iOS device (iPhone, iPad, iPod). */
 export function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;

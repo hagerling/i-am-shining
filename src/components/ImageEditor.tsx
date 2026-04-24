@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGesture } from '@use-gesture/react';
 import { Sparkle, DownloadSimple } from '@phosphor-icons/react';
 import { HeaderGenerator } from './HeaderGenerator';
-import { saveCanvasImage, isIOS } from '../lib/download';
+import { saveCanvasImages, isIOS } from '../lib/download';
 import {
   drawCircularImage,
   applyIridescentEffect,
@@ -485,10 +485,18 @@ export function ImageEditor() {
     if (file) handleFile(file);
   };
 
+  // Banner canvas reference, kept up to date by HeaderGenerator's onCanvasReady.
+  const bannerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   const handleDownload = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    saveCanvasImage(canvas, 'shining-profile.png');
+    const items: { canvas: HTMLCanvasElement; filename: string }[] = [];
+    if (canvasRef.current) {
+      items.push({ canvas: canvasRef.current, filename: 'shining-profile.png' });
+    }
+    if (bannerCanvasRef.current) {
+      items.push({ canvas: bannerCanvasRef.current, filename: 'shining-banner.png' });
+    }
+    if (items.length) saveCanvasImages(items);
   };
 
   return (
@@ -790,7 +798,7 @@ export function ImageEditor() {
                   }}
                 >
                   <DownloadSimple size={18} weight="bold" />
-                  <span>{onIOS ? 'Save to Photos' : 'Download LinkedIn profile picture'}</span>
+                  <span>Download</span>
                 </button>
               </div>
 
@@ -819,6 +827,7 @@ export function ImageEditor() {
           photoSrc={photoSrc}
           faceCenter={faceCenter}
           onReady={() => setBannerReady(true)}
+          onCanvasReady={(c) => { bannerCanvasRef.current = c; }}
         />,
         bannerPortalTarget,
       )}

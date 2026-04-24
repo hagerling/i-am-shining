@@ -23,9 +23,13 @@ interface Props {
    *  uses this to gate the moment it reveals the profile picture, so the
    *  banner and profile picture fade in synchronously. */
   onReady?: () => void;
+  /** Hands the parent a reference to the offscreen canvas, so a single
+   *  "Download" action in the controls can save both the banner and the
+   *  profile picture in one go. */
+  onCanvasReady?: (canvas: HTMLCanvasElement) => void;
 }
 
-export function HeaderGenerator({ photoSrc, faceCenter, onReady }: Props) {
+export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady }: Props) {
   // Canvas lives offscreen — we display the rendered result as an <img>
   // (via a blob URL) so iOS users can long-press → "Save to Photos".
   const canvasRef    = useRef<HTMLCanvasElement>(
@@ -40,7 +44,8 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady }: Props) {
   // Fire onReady once imgUrl is populated for the current generation
   useEffect(() => {
     if (imgUrl && onReady) onReady();
-  }, [imgUrl, onReady]);
+    if (imgUrl && onCanvasReady && canvasRef.current) onCanvasReady(canvasRef.current);
+  }, [imgUrl, onReady, onCanvasReady]);
   const [rendered,   setRendered]   = useState(false);
   const [generating, setGenerating] = useState(false);
   const [onIOS, setOnIOS] = useState(false);
