@@ -168,23 +168,6 @@ export function applyIridescentEffect(
   ctx.fillRect(0, 0, canvasW, canvasH);
   ctx.restore();
 
-  // Anamorphic streak — wide horizontal beam through the centre
-  if (intensity > 0.15) {
-    const streak = ctx.createLinearGradient(0, cy, canvasW, cy);
-    const streakAlpha = clamp(intensity * 0.55, 0, 0.7);
-    streak.addColorStop(0,    'hsla(45, 100%, 70%, 0)');
-    streak.addColorStop(0.30, `hsla(48, 100%, 80%, ${streakAlpha * 0.4})`);
-    streak.addColorStop(0.50, `hsla(52, 100%, 92%, ${streakAlpha})`);
-    streak.addColorStop(0.70, `hsla(48, 100%, 80%, ${streakAlpha * 0.4})`);
-    streak.addColorStop(1,    'hsla(45, 100%, 70%, 0)');
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = streak;
-    // narrow vertical band — only the central horizontal stripe lights up
-    const streakH = canvasH * 0.08;
-    ctx.fillRect(0, cy - streakH / 2, canvasW, streakH);
-    ctx.restore();
-  }
 
   // ── Sparkle / glitter layer — scales dramatically with intensity ────────
   // Below ~15% intensity: no sparkles. Above: an ever-denser field of
