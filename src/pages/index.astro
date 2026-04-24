@@ -124,16 +124,8 @@ import testimonials from '../data/testimonials.json';
     pointer-events: auto;
   }
 
-  /* Override the banner's height so it ends exactly at the profile circle's
-   * vertical centre. Banner starts at page top (0); profile circle top is at
-   * hero-height (8rem) from page top; profile circle is min(90vw, 400px)
-   * tall so its half-height is min(45vw, 200px). Sum = banner bottom = profile
-   * centre. This way the banner always stops at the middle of the profile
-   * image regardless of viewport. */
-  #banner-slot .banner-preview {
-    height: calc(8rem + min(45vw, 200px)) !important;
-    min-height: unset !important;
-  }
+  /* Banner height is set directly in HeaderGenerator.tsx so it correctly
+   * applies (Astro scoped styles don't reach React-portaled elements). */
 
   /* When a photo is loaded, the hero text turns white for contrast on banner */
   .has-photo .hero {
