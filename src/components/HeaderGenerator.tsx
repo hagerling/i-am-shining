@@ -279,54 +279,6 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, 
           >
             <ArrowsClockwise size={18} weight="bold" />
           </button>
-          <div ref={dropdownRef} style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setDropdownOpen(o => !o)}
-              disabled={!rendered || generating}
-              className="banner-icon-btn banner-icon-btn--primary"
-              aria-label={downloadLabel}
-              aria-expanded={dropdownOpen}
-              data-tooltip={dropdownOpen ? undefined : downloadLabel}
-              title={downloadLabel}
-            >
-              <DownloadSimple size={18} weight="bold" />
-            </button>
-            {dropdownOpen && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                right: 0,
-                background: 'rgba(14, 8, 0, 0.94)',
-                border: '1px solid rgba(184, 134, 11, 0.5)',
-                borderRadius: '10px',
-                padding: '0.35rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.15rem',
-                minWidth: '172px',
-                zIndex: 10,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
-              }}>
-                <button
-                  type="button"
-                  className="banner-dd-item"
-                  onClick={() => { handleDownload(); setDropdownOpen(false); }}
-                >
-                  Without text
-                </button>
-                <button
-                  type="button"
-                  className="banner-dd-item"
-                  onClick={() => { handleDownloadWithText(); setDropdownOpen(false); }}
-                >
-                  With text
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
       </div>
