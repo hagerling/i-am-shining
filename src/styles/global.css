@@ -2,16 +2,46 @@
 
 @layer base {
   :root {
+    /* Gold palette — shared across modes */
     --color-gold: #daa520;
     --color-gold-light: #ffd700;
     --color-gold-dim: #b8860b;
     --color-amber: #ff9f00;
+    --radius-card: 1.5rem;
+
+    /* Dark mode (default) */
     --color-bg: #0c0700;
     --color-surface: #1a0f02;
     --color-surface-2: #241505;
     --color-text: #f5e6c8;
     --color-text-muted: #a08050;
-    --radius-card: 1.5rem;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --color-bg: #fef8ed;
+      --color-surface: #fff8ee;
+      --color-surface-2: #faefd8;
+      --color-text: #1a0d02;
+      --color-text-muted: #7a5a2a;
+    }
+  }
+
+  /* Explicit overrides from ThemeToggle — win over media query */
+  [data-theme="dark"] {
+    --color-bg: #0c0700;
+    --color-surface: #1a0f02;
+    --color-surface-2: #241505;
+    --color-text: #f5e6c8;
+    --color-text-muted: #a08050;
+  }
+
+  [data-theme="light"] {
+    --color-bg: #fef8ed;
+    --color-surface: #fff8ee;
+    --color-surface-2: #faefd8;
+    --color-text: #1a0d02;
+    --color-text-muted: #7a5a2a;
   }
 
   * {
@@ -22,10 +52,273 @@
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: 'DM Sans', sans-serif;
+    transition: background-color 0.3s, color 0.3s;
   }
 
   ::selection {
     background: var(--color-gold);
     color: #000;
+  }
+
+  /* Visible focus ring for keyboard users (skips mouse/touch focus) */
+  :focus-visible {
+    outline: 2px solid var(--color-gold-light);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Skip-to-content link — hidden until a keyboard user tabs to it */
+  .skip-link {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.65rem 1rem;
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    border: 1px solid var(--color-gold-dim);
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transform: translateY(-200%);
+    transition: transform 0.2s;
+    z-index: 100;
+    text-decoration: none;
+  }
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  /* ─── Shine-intensity slider — custom, touch-friendly ─────────────────
+     Native <input type=range> thumbs are ~12 px — too small for a finger.
+     This gives every browser a 28 px thumb, a 44 px touch-target height,
+     and touch-action: pan-y so the user can still scroll the page by
+     dragging vertically while the slider captures horizontal drags. */
+  input[type="range"].shine-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    width: 100%;
+    height: 44px;          /* 44 px Apple/WCAG touch-target minimum */
+    touch-action: pan-y;
+    cursor: pointer;
+    margin: 0;
+  }
+  input[type="range"].shine-slider:focus { outline: none; }
+
+  /* WebKit track */
+  input[type="range"].shine-slider::-webkit-slider-runnable-track {
+    height: 6px;
+    background: rgba(184, 134, 11, 0.28);
+    border-radius: 999px;
+  }
+  input[type="range"].shine-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+    border: 2px solid var(--color-gold-dim);
+    margin-top: -11px;      /* centre 28 px thumb on 6 px track */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    transition: transform 0.12s;
+  }
+  input[type="range"].shine-slider:active::-webkit-slider-thumb {
+    transform: scale(1.12);
+  }
+  input[type="range"].shine-slider:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Firefox track + thumb */
+  input[type="range"].shine-slider::-moz-range-track {
+    height: 6px;
+    background: rgba(184, 134, 11, 0.28);
+    border-radius: 999px;
+  }
+  input[type="range"].shine-slider::-moz-range-progress {
+    height: 6px;
+    background: linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-light));
+    border-radius: 999px;
+  }
+  input[type="range"].shine-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+    border: 2px solid var(--color-gold-dim);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    transition: transform 0.12s;
+  }
+  input[type="range"].shine-slider:active::-moz-range-thumb {
+    transform: scale(1.12);
+  }
+
+  /* ── "Has photo" transition: banner expands and hero collapses in lock-step.
+   *  Hero and banner share the same size (aspect 4:1, min 200px), so their
+   *  swap produces zero net page-height change. Everything below (profile
+   *  pic, subtitle, testimonials) stays put while hero fades out and banner
+   *  fades in. Then the profile pic slides up over the banner's bottom
+   *  edge via its own margin-top transition. */
+
+  /* Banner-slot is the portal container. It governs the LAYOUT height of the
+   * banner above the hero. We make the banner TALLER than the hero by one
+   * profile-pic radius, so its bottom edge reaches half-way down the photo.
+   *   banner_height = hero_height + pic_radius
+   *   profile-pic margin-top = -pic_radius  (overlap)
+   *   ⇒ pic_center Y = hero_height + pic_radius
+   * This is the same Y position as the dropzone's centre in step 1, so the
+   * circle never moves on screen. */
+  #banner-slot {
+    max-height: 0;
+    overflow: hidden;
+    /* Delay layout change until hero text has faded out (0.25s). Opacity is
+     * controlled on .banner-preview directly so the profile can appear first. */
+    transition: max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
+  }
+  .has-photo #banner-slot {
+    /* hero height + profile-pic radius */
+    max-height: calc(max(25vw, 200px) + min(45vw, 200px));
+  }
+
+  /* Hero text fades out fast (0.25s) with no movement. Layout collapse is
+   * delayed by 0.25s so the text is already invisible before anything moves. */
+  .hero {
+    max-height: max(25vw, 200px);
+    overflow: hidden;
+    transition: max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
+  }
+  .hero > * {
+    transition: opacity 0.25s ease;
+  }
+  .has-photo .hero {
+    max-height: 0;
+  }
+  .has-photo .hero > * {
+    opacity: 0;
+  }
+
+  /* Hero repeated BELOW the profile picture. Fades in with the banner (~0.6s
+   * delay) so text appears below the profile at the same time the banner does. */
+  .hero-below {
+    text-align: center;
+    padding: 2rem 1rem 0;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition:
+      opacity    0.50s ease 0.65s,
+      max-height 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.65s;
+  }
+  .has-photo .hero-below {
+    opacity: 1;
+    max-height: 300px;
+  }
+  .hero-below .hero-badge {
+    margin-bottom: 0.6rem;
+  }
+  .hero-below-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.1;
+    color: var(--color-text);
+    margin: 0;
+  }
+  .hero-below-title em {
+    font-style: italic;
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-amber));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Profile picture wrapper — STAYS in place across the dropzone↔canvas
+   * swap. In step 2 we pull it up by its own radius to overlap the banner's
+   * bottom edge; combined with the banner being taller by that same radius,
+   * the pic's centre Y is identical in both states. Linear interpolation
+   * of all three (hero shrink, banner-slot grow, margin-top negative)
+   * keeps the Y constant at every instant of the 0.6 s transition. */
+  .profile-canvas-wrapper {
+    margin-top: 0;
+    transition: margin-top 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
+  }
+  .has-photo .profile-canvas-wrapper {
+    margin-top: max(-45vw, -200px);
+  }
+
+  /* Banner image starts hidden and fades in after the profile picture has
+   * appeared (~0.6s delay relative to has-photo). The slot controls layout
+   * height; the preview controls its own opacity independently. */
+  @keyframes banner-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .banner-preview {
+    opacity: 0;
+  }
+  .has-photo .banner-preview {
+    animation: banner-fade-in 0.5s ease 0.6s both;
+  }
+
+  /* ── Site nav ───────────────────────── */
+  .site-nav {
+    position: fixed;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.25rem;
+    z-index: 100;
+    background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-gold-dim) 30%, transparent);
+    border-radius: 2rem;
+    padding: 0.35rem 0.5rem;
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-link {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    padding: 0.3rem 0.85rem;
+    border-radius: 1.5rem;
+    transition: color 0.2s, background 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-link:hover,
+  .nav-link[aria-current="page"] {
+    color: var(--color-gold-light);
+    background: color-mix(in srgb, var(--color-gold-dim) 15%, transparent);
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 1rem;
+    z-index: 200;
+    background: var(--color-gold);
+    color: #000;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .skip-link:focus {
+    left: 1rem;
+  }
+
+  /* Respect users who request reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
