@@ -487,6 +487,22 @@ export function ImageEditor() {
 
   // Banner canvas reference, kept up to date by HeaderGenerator's onCanvasReady.
   const bannerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Renderer that can produce a fresh banner canvas with/without text on demand.
+  const bannerRendererRef = useRef<((withText: boolean) => Promise<HTMLCanvasElement | null>) | null>(null);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const headerMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close the header menu on outside click
+  useEffect(() => {
+    if (!headerMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (headerMenuRef.current && !headerMenuRef.current.contains(e.target as Node)) {
+        setHeaderMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [headerMenuOpen]);
 
   const handleDownloadProfile = () => {
     if (canvasRef.current) {
@@ -494,8 +510,19 @@ export function ImageEditor() {
     }
   };
 
-  const handleDownloadHeader = () => {
-    if (bannerCanvasRef.current) {
+  const handleDownloadHeader = async (withText: boolean) => {
+    setHeaderMenuOpen(false);
+    if (bannerRendererRef.current) {
+      const c = await bannerRendererRef.current(withText);
+      if (c) {
+        saveCanvasImages([
+          { canvas: c, filename: withText ? 'shining-banner-with-text.png' : 'shining-banner.png' },
+        ]);
+        return;
+      }
+    }
+    // Fallback: use the live preview canvas (no-text version)
+    if (!withText && bannerCanvasRef.current) {
       saveCanvasImages([{ canvas: bannerCanvasRef.current, filename: 'shining-banner.png' }]);
     }
   };
@@ -760,21 +787,51 @@ export function ImageEditor() {
                 />
               </div>
 
-              {/* Action buttons — two gold downloads, side-by-side */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              {/* Primary action — download the profile picture */}
+              <button
+                onClick={handleDownloadProfile}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
+                  border: 'none',
+                  borderRadius: '0.85rem',
+                  color: '#000',
+                  padding: '1rem 1.1rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  letterSpacing: '0.03em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1,
+                  boxShadow: '0 8px 28px hsla(45, 90%, 55%, 0.25)',
+                }}
+              >
+                <DownloadSimple size={20} weight="bold" />
+                <span>Download profile picture</span>
+              </button>
+
+              {/* Secondary action — header download with a dropdown for
+                  "with text" / "without text". */}
+              <div ref={headerMenuRef} style={{ position: 'relative', width: '100%' }}>
                 <button
-                  onClick={handleDownloadHeader}
+                  onClick={() => setHeaderMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={headerMenuOpen}
                   style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
-                    border: 'none',
+                    width: '100%',
+                    background: 'transparent',
+                    border: '1px solid rgba(184,134,11,0.45)',
                     borderRadius: '0.75rem',
-                    color: '#000',
-                    padding: '0.75rem 0.9rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 700,
+                    color: 'var(--color-gold-light)',
+                    padding: '0.7rem 0.9rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
                     cursor: 'pointer',
-                    letterSpacing: '0.03em',
+                    letterSpacing: '0.02em',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -783,33 +840,78 @@ export function ImageEditor() {
                     lineHeight: 1,
                   }}
                 >
-                  <DownloadSimple size={18} weight="bold" />
+                  <DownloadSimple size={16} weight="bold" />
                   <span>Download header image</span>
+                  <span
+                    aria-hidden
+                    style={{
+                      display: 'inline-block',
+                      width: '0.45rem',
+                      height: '0.45rem',
+                      borderRight: '2px solid currentColor',
+                      borderBottom: '2px solid currentColor',
+                      transform: headerMenuOpen ? 'rotate(-135deg) translate(-2px, -2px)' : 'rotate(45deg)',
+                      transition: 'transform 0.2s',
+                      marginLeft: '0.25rem',
+                    }}
+                  />
                 </button>
-                <button
-                  onClick={handleDownloadProfile}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
-                    border: 'none',
-                    borderRadius: '0.75rem',
-                    color: '#000',
-                    padding: '0.75rem 0.9rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    letterSpacing: '0.03em',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1,
-                  }}
-                >
-                  <DownloadSimple size={18} weight="bold" />
-                  <span>Download profile picture</span>
-                </button>
+                {headerMenuOpen && (
+                  <div
+                    role="menu"
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 0.4rem)',
+                      left: 0,
+                      right: 0,
+                      background: 'var(--color-surface)',
+                      border: '1px solid rgba(184,134,11,0.35)',
+                      borderRadius: '0.75rem',
+                      padding: '0.35rem',
+                      zIndex: 20,
+                      boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    <button
+                      role="menuitem"
+                      onClick={() => handleDownloadHeader(false)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--color-text)',
+                        padding: '0.65rem 0.85rem',
+                        fontSize: '0.85rem',
+                        textAlign: 'left',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(218,165,32,0.12)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                    >
+                      Without text
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => handleDownloadHeader(true)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--color-text)',
+                        padding: '0.65rem 0.85rem',
+                        fontSize: '0.85rem',
+                        textAlign: 'left',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(218,165,32,0.12)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                    >
+                      With “I am #Shining” text
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Subtle text link to swap the photo */}
@@ -856,6 +958,7 @@ export function ImageEditor() {
           faceCenter={faceCenter}
           onReady={() => setBannerReady(true)}
           onCanvasReady={(c) => { bannerCanvasRef.current = c; }}
+          onRendererReady={(fn) => { bannerRendererRef.current = fn; }}
         />,
         bannerPortalTarget,
       )}
