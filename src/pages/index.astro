@@ -358,34 +358,15 @@ import testimonials from '../data/testimonials.json';
     color: var(--color-gold-light);
   }
 
-  /* The <details> element hides non-summary children when closed.
-   * Force the answer to stay rendered (display: block) and animate its
-   * max-height + padding + opacity in/out via the [open] state. */
+  /* JS-driven open/close animation — see <script> below. We just need the
+   * answer to overflow-clip during the height transition. */
   .faq-answer {
-    display: block;
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
     margin: 0;
-    padding: 0;
+    padding: 0 0 1.5rem;
     color: var(--color-text-muted);
     font-size: 0.95rem;
     line-height: 1.7;
-    transition:
-      max-height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-      padding    0.45s cubic-bezier(0.22, 1, 0.36, 1),
-      opacity    0.30s ease;
-  }
-
-  .faq-item[open] .faq-answer {
-    /* Generous ceiling — actual content height is the visible bound. */
-    max-height: 800px;
-    padding: 0 0 1.5rem;
-    opacity: 1;
-    transition:
-      max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-      padding    0.5s cubic-bezier(0.22, 1, 0.36, 1),
-      opacity    0.30s ease 0.1s;
+    overflow: hidden;
   }
 
   .faq-answer strong {
@@ -424,14 +405,95 @@ import testimonials from '../data/testimonials.json';
     }
   }
 
-  // FAQ accordion — only one <details> open at a time
+  // FAQ accordion — animate expand/collapse with height + fade + slight rise.
+  // We intercept summary clicks because the native <details> toggle is
+  // instant; this lets us cleanly drive the transition.
   const faqItems = document.querySelectorAll<HTMLDetailsElement>('.faq-list .faq-item');
+  const OPEN_MS = 420;
+  const CLOSE_MS = 360;
+  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+  const animateOpen = (item: HTMLDetailsElement) => {
+    const answer = item.querySelector<HTMLElement>('.faq-answer');
+    if (!answer) return;
+    item.open = true;
+    // measure target height
+    answer.style.transition = 'none';
+    answer.style.maxHeight = 'none';
+    answer.style.opacity = '1';
+    answer.style.transform = 'none';
+    answer.style.paddingBottom = '1.5rem';
+    const target = answer.scrollHeight;
+    // collapse to start state
+    answer.style.maxHeight = '0px';
+    answer.style.opacity = '0';
+    answer.style.transform = 'translateY(-6px)';
+    answer.style.paddingBottom = '0';
+    // force reflow so the next style change is animated
+    void answer.offsetHeight;
+    answer.style.transition =
+      `max-height ${OPEN_MS}ms ${EASE}, ` +
+      `opacity ${OPEN_MS - 100}ms ease ${80}ms, ` +
+      `transform ${OPEN_MS}ms ${EASE}, ` +
+      `padding-bottom ${OPEN_MS}ms ${EASE}`;
+    answer.style.maxHeight = target + 'px';
+    answer.style.opacity = '1';
+    answer.style.transform = 'translateY(0)';
+    answer.style.paddingBottom = '1.5rem';
+    window.setTimeout(() => {
+      answer.style.transition = '';
+      answer.style.maxHeight = '';
+      answer.style.opacity = '';
+      answer.style.transform = '';
+      answer.style.paddingBottom = '';
+    }, OPEN_MS + 30);
+  };
+
+  const animateClose = (item: HTMLDetailsElement) => {
+    const answer = item.querySelector<HTMLElement>('.faq-answer');
+    if (!answer) {
+      item.open = false;
+      return;
+    }
+    const start = answer.scrollHeight;
+    answer.style.transition = 'none';
+    answer.style.maxHeight = start + 'px';
+    answer.style.opacity = '1';
+    answer.style.transform = 'translateY(0)';
+    answer.style.paddingBottom = '1.5rem';
+    void answer.offsetHeight;
+    answer.style.transition =
+      `max-height ${CLOSE_MS}ms ${EASE}, ` +
+      `opacity ${CLOSE_MS - 80}ms ease, ` +
+      `transform ${CLOSE_MS}ms ${EASE}, ` +
+      `padding-bottom ${CLOSE_MS}ms ${EASE}`;
+    answer.style.maxHeight = '0px';
+    answer.style.opacity = '0';
+    answer.style.transform = 'translateY(-6px)';
+    answer.style.paddingBottom = '0';
+    window.setTimeout(() => {
+      item.open = false;
+      answer.style.transition = '';
+      answer.style.maxHeight = '';
+      answer.style.opacity = '';
+      answer.style.transform = '';
+      answer.style.paddingBottom = '';
+    }, CLOSE_MS + 30);
+  };
+
   faqItems.forEach((item) => {
-    item.addEventListener('toggle', () => {
+    const summary = item.querySelector('summary');
+    if (!summary) return;
+    summary.addEventListener('click', (e) => {
+      e.preventDefault();
       if (item.open) {
+        animateClose(item);
+      } else {
+        // Only one item open at a time — close others first.
         faqItems.forEach((other) => {
-          if (other !== item && other.open) other.open = false;
+          if (other !== item && other.open) animateClose(other);
         });
+        animateOpen(item);
       }
     });
   });
