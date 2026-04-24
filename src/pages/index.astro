@@ -10,22 +10,17 @@ import testimonials from '../data/testimonials.json';
   <DiscoBall client:only="react" />
 
   <main id="main-content" tabindex="-1">
-    <div id="banner-slot"></div>
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-inner">
-        <h1 id="hero-title">I am <em>#Shining</em></h1>
-      </div>
-    </section>
+    <div class="hero-wrapper">
+      <div id="banner-slot"></div>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-inner">
+          <h1 id="hero-title">I am <em>#Shining</em></h1>
+        </div>
+      </section>
+    </div>
 
     <section class="editor-section reveal" aria-label="Profile photo editor">
       <ImageEditor client:load />
-      {/* Hero text that reappears BELOW the profile picture once a photo is
-          uploaded. Same content as the top hero; .has-photo cross-fades
-          between the two instances (no translation). */}
-      <div class="hero-below" aria-hidden="true">
-        <p class="hero-badge">#shining</p>
-        <p class="hero-below-title">I am&nbsp;<em>Shining</em></p>
-      </div>
     </section>
 
     <div class="divider reveal"></div>
@@ -107,6 +102,36 @@ import testimonials from '../data/testimonials.json';
   }
   .reveal.is-visible {
     opacity: 1;
+  }
+
+  /* ── Hero wrapper — banner + heading share one positioned container ── */
+  .hero-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  /* When a photo is loaded, the heading overlays the banner */
+  .has-photo .hero {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    background: transparent;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .has-photo .hero h1 {
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.55);
+    transition: color 0.4s, text-shadow 0.4s;
+  }
+
+  .has-photo .hero h1 em {
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    -webkit-text-fill-color: #fff;
+    filter: drop-shadow(0 0 12px rgba(255,215,0,0.5));
   }
 
   /* ── Page structure ───────────────────────── */
@@ -296,17 +321,20 @@ import testimonials from '../data/testimonials.json';
   .faq-question::marker { display: none; }
 
   .faq-question::after {
-    content: '+';
-    font-size: 1.4rem;
-    font-weight: 300;
-    color: var(--color-gold);
+    content: '';
     flex-shrink: 0;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-right: 2px solid var(--color-gold);
+    border-bottom: 2px solid var(--color-gold);
+    transform: rotate(45deg);
     transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
-    line-height: 1;
+    margin-bottom: 0.2rem;
   }
 
   .faq-item[open] .faq-question::after {
-    transform: rotate(45deg);
+    transform: rotate(-135deg);
+    margin-bottom: -0.2rem;
   }
 
   .faq-item[open] .faq-question {
