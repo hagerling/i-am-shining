@@ -2,9 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { ImageEditor } from '../components/ImageEditor';
 import { SocialFeed } from '../components/SocialFeed';
-import postsData from '../data/social-posts.json';
-
-const linkedinPosts = postsData.posts.filter((p) => p.platform === 'linkedin');
+import testimonials from '../data/testimonials.json';
 ---
 
 <Layout>
@@ -21,7 +19,7 @@ const linkedinPosts = postsData.posts.filter((p) => p.platform === 'linkedin');
 
     <div class="divider"></div>
 
-    <SocialFeed linkedinPosts={linkedinPosts} client:load />
+    <SocialFeed testimonials={testimonials} client:load />
 
     <footer class="site-footer">
       <p>#shining &mdash; keep it golden</p>
