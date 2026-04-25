@@ -155,6 +155,41 @@ export function ImageEditor() {
 
   const transformRef = useRef<PhotoTransform>({ x: 0, y: 0, scale: 1 });
 
+  // ── Banner-sync ─────────────────────────────────────────────────────────
+  // After the user finishes panning/zooming the profile photo, mirror the
+  // same sample point and zoom into the kaleidoscope banner so the two
+  // visuals stay in lock-step. Debounced — we don't regenerate the banner
+  // mid-drag, only when the user pauses.
+  interface BannerSampling { offsetX: number; offsetY: number; scale: number; }
+  const [bannerSampling, setBannerSampling] = useState<BannerSampling | null>(null);
+  const bannerSettleTimerRef = useRef<number | null>(null);
+
+  const computeBannerSampling = useCallback((): BannerSampling | null => {
+    const photo = photoImgRef.current;
+    if (!photo || !photo.naturalWidth || !photo.naturalHeight) return null;
+    const t = transformRef.current;
+    const baseScale = Math.max(CANVAS_SIZE / photo.naturalWidth, CANVAS_SIZE / photo.naturalHeight);
+    const displayedW = photo.naturalWidth  * baseScale * t.scale;
+    const displayedH = photo.naturalHeight * baseScale * t.scale;
+    const c = (n: number) => Math.max(0.05, Math.min(0.95, n));
+    return {
+      offsetX: c(0.5 - t.x / displayedW),
+      offsetY: c(0.5 - t.y / displayedH),
+      scale:   t.scale,
+    };
+  }, []);
+
+  const settleBannerSampling = useCallback(() => {
+    if (bannerSettleTimerRef.current !== null) {
+      clearTimeout(bannerSettleTimerRef.current);
+    }
+    bannerSettleTimerRef.current = window.setTimeout(() => {
+      bannerSettleTimerRef.current = null;
+      const s = computeBannerSampling();
+      if (s) setBannerSampling(s);
+    }, 250);
+  }, [computeBannerSampling]);
+
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     const photo = photoImgRef.current;
@@ -232,12 +267,14 @@ export function ImageEditor() {
       photoImgRef.current = null;
       faceZonesRef.current = null;
       setFaceCenter(null);
+      setBannerSampling(null);
       setIdleImgUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
       return;
     }
     transformRef.current = { x: 0, y: 0, scale: 1 };
     faceZonesRef.current = null;   // new photo — discard old landmarks
     setFaceCenter(null);
+    setBannerSampling(null);
     const MAX_SIDE = 2400;
 
     // Kick off face landmark detection in the background. The sparkle layer
@@ -348,7 +385,8 @@ export function ImageEditor() {
       });
     }
     render();
-  }, [render]);
+    settleBannerSampling();
+  }, [render, settleBannerSampling]);
 
   // ─────────────────────────────────────────────────────────────────────────
   //  All gesture plumbing is delegated to @use-gesture/react.
@@ -377,9 +415,10 @@ export function ImageEditor() {
           y: transformRef.current.y + cdy,
         });
         render();
+        settleBannerSampling();
       },
       onDragStart: () => { if (photoSrc) setIsInteracting(true); },
-      onDragEnd:   () => commitIdleImage(),
+      onDragEnd:   () => { commitIdleImage(); settleBannerSampling(); },
 
       onPinch: ({ origin: [ox, oy], offset: [nextScale], first, memo }) => {
         if (!photoSrc) return memo;
@@ -406,10 +445,11 @@ export function ImageEditor() {
           scale: clampedScale,
         });
         render();
+        settleBannerSampling();
         return memo;
       },
       onPinchStart: () => { if (photoSrc) setIsInteracting(true); },
-      onPinchEnd:   () => commitIdleImage(),
+      onPinchEnd:   () => { commitIdleImage(); settleBannerSampling(); },
 
       onWheel: ({ event, delta: [dx, dy], pinching }) => {
         if (!photoSrc || pinching) return;
@@ -422,6 +462,7 @@ export function ImageEditor() {
           y: transformRef.current.y + cdy,
         });
         render();
+        settleBannerSampling();
       },
     },
     {
@@ -956,6 +997,7 @@ export function ImageEditor() {
         <HeaderGenerator
           photoSrc={photoSrc}
           faceCenter={faceCenter}
+          sampling={bannerSampling}
           onReady={() => setBannerReady(true)}
           onCanvasReady={(c) => { bannerCanvasRef.current = c; }}
           onRendererReady={(fn) => { bannerRendererRef.current = fn; }}
