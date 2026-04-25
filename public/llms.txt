@@ -1,17 +1,21 @@
 # I am Shining
 
-> A free, privacy-first web tool for creating golden #Shining profile pictures and LinkedIn banners. Everything runs in your browser — your photo is never uploaded to a server.
+> A free, privacy-first web tool for creating golden #Shining profile pictures and matching LinkedIn banners. Everything runs in your browser — your photo is never uploaded to a server.
 
 URL: https://i-am-shining.com
 Brand: #Shining — golden, optimistic, full of light
 
 ## What the site does
-- Upload a profile photo (drag-and-drop or file picker)
+- Upload a profile photo (drag-and-drop, click-to-browse)
 - Apply the golden #Shining crescent frame overlay
-- Adjust iridescent "shine intensity" with a slider
-- Pan and zoom to position the photo (trackpad, pinch, scroll, or double-tap)
+- Choose a frame style: Gold, Rose, or Silver — the iridescent shine and metallic ring re-tint to match
+- Auto-frame the head: face landmarks (eyes + mouth) are detected on-device and the photo is centred and zoomed so the face fills ~62% of the crop
+- Adjust the iridescent "shine intensity" with a slider
+- Pan and zoom to position the photo (drag, scroll, pinch, or double-tap)
 - Download the finished profile picture as a 600×600 px PNG
-- Generate a 1584×396 px LinkedIn header image with a golden-diamond kaleidoscope effect that mirrors your uploaded photo
+- Generate a matching 1584×396 px LinkedIn banner with a golden kaleidoscope effect that mirrors features from the uploaded photo
+- The banner can be downloaded with or without an "I am #Shining" text overlay
+- The kaleidoscope's sample point and zoom track the user's pan/zoom of the profile crop, so the two stay visually linked
 - Save directly to the iPhone Photos library via the Web Share API
 
 ## Brand and movement
@@ -21,14 +25,24 @@ Brand: #Shining — golden, optimistic, full of light
 - 100% client-side processing — no server uploads
 - No tracking, no analytics, no account required
 - The photo never leaves the user's device
+- Face detection (MediaPipe) runs entirely in the browser
+
+## Accessibility
+- Keyboard-navigable controls with visible focus rings
+- ARIA labels on all interactive elements
+- Respects `prefers-reduced-motion`
+- Skip link to main content
+- WCAG AA colour contrast on body text
 
 ## Key pages
 - Home / editor: https://i-am-shining.com/
+- About: https://i-am-shining.com/about
 - FAQ section (on home page): how to add to LinkedIn, cross-platform compatibility, download size, privacy details
 
 ## Tech
-- Built with Astro, React, and HTML5 Canvas
-- Open for contributions and attribution: #Shining — keep it golden
+- Built with Astro, React, TypeScript, Framer Motion, and HTML5 Canvas
+- Open source under MIT: https://github.com/hagerling/i-am-shining
+- Brand: #Shining — keep it golden
 
 ## Contact
 - Carl Hagerling — carl.hagerling@gmail.com

@@ -82,21 +82,27 @@ export function SocialFeed({ testimonials }: Props) {
         className="testimonial-grid"
       >
         {testimonials.map((t, i) => (
-          <div
+          <figure
             key={i}
             className="testimonial-card"
+            itemScope
+            itemType="https://schema.org/Review"
             style={{
               breakInside: 'avoid',
               marginBottom: '1.25rem',
               background: 'var(--color-surface)',
+              border: '1px solid rgba(184, 134, 11, 0.12)',
               borderRadius: 'var(--radius-card)',
               padding: '1.5rem',
               display: 'inline-block',
               width: '100%',
               boxSizing: 'border-box',
-              transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1)',
+              transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1), border-color 0.25s, box-shadow 0.25s',
+              margin: 0,
             }}
           >
+            <meta itemProp="itemReviewed" content="I am Shining" />
+            {t.date && <meta itemProp="datePublished" content={t.date} />}
             {/* Quote mark */}
             <Sparkle
               size={30}
@@ -107,20 +113,28 @@ export function SocialFeed({ testimonials }: Props) {
 
             {/* Quote text — readable italic serif, up from the display face
                 (DM Serif Display) which was cramping at body size. */}
-            <p style={{
-              color: 'var(--color-text)',
-              fontSize: '1.08rem',
-              lineHeight: 1.6,
-              margin: '0 0 1.25rem',
-              fontStyle: 'italic',
-              fontFamily: '"Iowan Old Style", "Charter", "Source Serif Pro", Georgia, serif',
-              letterSpacing: '0.005em',
-            }}>
+            <blockquote
+              itemProp="reviewBody"
+              style={{
+                color: 'var(--color-text)',
+                fontSize: '1.08rem',
+                lineHeight: 1.6,
+                margin: '0 0 1.25rem',
+                fontStyle: 'italic',
+                fontFamily: '"Iowan Old Style", "Charter", "Source Serif Pro", Georgia, serif',
+                letterSpacing: '0.005em',
+              }}
+            >
               &ldquo;{t.quote}&rdquo;
-            </p>
+            </blockquote>
 
             {/* Author */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <figcaption
+              itemProp="author"
+              itemScope
+              itemType="https://schema.org/Person"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+            >
               {/* Avatar with Shining frame overlay */}
               {t.avatar ? (
                 <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
@@ -172,21 +186,25 @@ export function SocialFeed({ testimonials }: Props) {
                 </div>
               )}
               <div>
-                <div style={{ color: 'var(--color-text)', fontWeight: 600, fontSize: '0.85rem' }}>
+                <div itemProp="name" style={{ color: 'var(--color-text)', fontWeight: 600, fontSize: '0.85rem' }}>
                   {t.name}
                 </div>
-                <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
+                <div itemProp="jobTitle" style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
                   {t.title}
                 </div>
               </div>
-            </div>
-          </div>
+            </figcaption>
+          </figure>
         ))}
       </div>
 
       <style>{`
         @media (max-width: 600px) {
           .testimonial-grid { columns: 1 !important; }
+        }
+        .testimonial-card:hover {
+          border-color: rgba(184, 134, 11, 0.35) !important;
+          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
         }
       `}</style>
     </section>
