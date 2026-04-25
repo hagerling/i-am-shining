@@ -10,7 +10,7 @@ interface Props {
 
 const {
   title = 'I am Shining — Make Your Profile Glow',
-  description = 'Upload your profile photo, apply the golden #Shining frame, and let your light shine. Join the movement.',
+  description = 'Upload a photo, apply the golden #Shining frame, and download a matching LinkedIn banner. Free, runs entirely in your browser, no account needed.',
   canonical,
 } = Astro.props;
 
@@ -29,6 +29,14 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#daa520" />
+
+    <!-- iOS / Android web-app behavior -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="#Shining" />
+    <meta name="application-name" content="#Shining" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <!-- Preload above-the-fold assets for faster first paint -->
     <link rel="preload" as="image" href="/shining-frame.png" fetchpriority="high" />
@@ -157,6 +165,41 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
                 "@type": "Answer",
                 "text": "Use a photo where your face is centred and well-lit. After uploading, drag to reposition and scroll to zoom until your face sits comfortably inside the circular frame. Adjust the Shine Intensity slider to taste — around 40–60% tends to look natural while still catching the light."
               }
+            }
+          ]
+        },
+        {
+          "@type": "HowTo",
+          "@id": siteUrl + "#howto",
+          "name": "Make a #Shining profile picture and LinkedIn banner",
+          "description": "Three steps to upgrade your profile photo with the golden #Shining frame and download a matching LinkedIn banner.",
+          "totalTime": "PT1M",
+          "image": ogImage,
+          "tool": [
+            { "@type": "HowToTool", "name": "Modern web browser with HTML5 Canvas support" },
+            { "@type": "HowToTool", "name": "A photo of your face (JPG, PNG, HEIC, or WebP)" }
+          ],
+          "step": [
+            {
+              "@type": "HowToStep",
+              "position": 1,
+              "name": "Upload a photo",
+              "text": "Drag a portrait into the circle, or click to browse from your device. Everything stays in the browser — nothing is uploaded.",
+              "url": siteUrl + "#step-upload"
+            },
+            {
+              "@type": "HowToStep",
+              "position": 2,
+              "name": "Adjust the look",
+              "text": "Auto-framing centres your face. Pan and zoom to taste, then pick a frame style (Gold, Rose, or Silver) and tune the shine intensity.",
+              "url": siteUrl + "#step-adjust"
+            },
+            {
+              "@type": "HowToStep",
+              "position": 3,
+              "name": "Download",
+              "text": "Save the 600×600 profile picture. You can also download a matching 1584×396 LinkedIn banner — with or without the “I am #Shining” text overlay.",
+              "url": siteUrl + "#step-download"
             }
           ]
         }

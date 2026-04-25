@@ -90,8 +90,25 @@ import testimonials from '../data/testimonials.json';
       </div>
     </section>
 
-    <footer class="site-footer reveal">
-      <p>#shining &mdash; keep it golden</p>
+    <footer class="site-footer reveal" aria-labelledby="footer-tagline">
+      <div class="footer-inner">
+        <p id="footer-tagline" class="footer-tagline">
+          <span class="footer-mark">#</span>Shining &mdash; keep it golden
+        </p>
+        <p class="footer-meta">
+          Built privacy-first. Your photo never leaves the browser.
+        </p>
+        <nav class="footer-nav" aria-label="External links">
+          <a href="https://github.com/hagerling/i-am-shining" rel="noopener noreferrer" target="_blank">Source</a>
+          <span aria-hidden class="footer-sep">·</span>
+          <a href="#faq-heading">FAQ</a>
+          <span aria-hidden class="footer-sep">·</span>
+          <a href="mailto:carl.hagerling@gmail.com">Contact</a>
+        </nav>
+        <p class="footer-credit">
+          Made by <a href="https://github.com/hagerling" rel="noopener noreferrer" target="_blank">Carl Hagerling</a>
+        </p>
+      </div>
     </footer>
   </main>
 </Layout>
@@ -269,11 +286,88 @@ import testimonials from '../data/testimonials.json';
   }
 
   .site-footer {
-    padding: 2rem;
+    width: 100%;
+    padding: 4rem 1.5rem 3rem;
     color: var(--color-text-muted);
-    font-size: 0.8rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    text-align: center;
+    border-top: 1px solid rgba(184, 134, 11, 0.18);
+    margin-top: 2rem;
+    background:
+      radial-gradient(ellipse 60% 100% at 50% 0%, hsla(40, 80%, 30%, 0.10) 0%, transparent 70%);
+  }
+
+  .footer-inner {
+    max-width: 540px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .footer-tagline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    font-style: italic;
+    margin: 0;
+    color: var(--color-text);
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-amber));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .footer-mark {
+    font-style: normal;
+    margin-right: 0.05em;
+  }
+
+  .footer-meta {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .footer-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+  }
+
+  .footer-nav a {
+    color: var(--color-gold-light);
+    text-decoration: none;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.35rem;
+    transition: background 0.2s;
+  }
+
+  .footer-nav a:hover {
+    background: rgba(218, 165, 32, 0.12);
+  }
+
+  .footer-sep {
+    color: var(--color-text-muted);
+    opacity: 0.5;
+  }
+
+  .footer-credit {
+    margin: 0.4rem 0 0;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .footer-credit a {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(218, 165, 32, 0.5);
   }
 
   /* ── FAQ ─────────────────────────────────── */

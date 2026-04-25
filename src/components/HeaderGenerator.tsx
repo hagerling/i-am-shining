@@ -254,9 +254,24 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCan
   if (!photoSrc) return null;
 
   const downloadLabel = onIOS ? 'Save to Photos' : 'Download banner';
+  const statusMessage = generating
+    ? 'Generating banner…'
+    : rendered
+      ? 'Banner ready'
+      : '';
 
   return (
     <div style={{ width: '100%' }}>
+
+      {/* Live region for screen readers — announces when the banner
+          regenerates so non-sighted users know the visual changed. */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {statusMessage}
+      </div>
 
       {/* Full-bleed banner — breaks out of any max-width parent so it spans
           the viewport at the very top of the page. */}
