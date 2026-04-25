@@ -3,22 +3,33 @@ export function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }
 
+export interface PaletteShift {
+  hue?: number;  // degrees added to the base gold hues (negative = rose, etc.)
+  sat?: number;  // multiplier on saturation (0–1 reduces, 1 = unchanged)
+}
+
 /**
- * Generate gradient stops for the golden shine overlay.
- * Stays in the warm amber–gold–champagne band (no rainbow hues), so the
- * effect reads as polished metallic gold with a luminous champagne highlight,
- * rather than as iridescent oil-slick. intensity: 0–1 controls alpha.
+ * Generate gradient stops for the metallic shine overlay.
+ * Default = warm amber→gold→champagne. The optional palette shift can rotate
+ * the hue (e.g. toward rose) or desaturate (toward platinum/silver).
  */
-export function getIridescentStops(intensity: number): [number, string][] {
+export function getIridescentStops(
+  intensity: number,
+  shift: PaletteShift = {},
+): [number, string][] {
   const alpha = clamp(intensity * 0.85, 0, 0.85);
+  const dh = shift.hue ?? 0;
+  const ds = shift.sat ?? 1;
+  const h = (base: number) => Math.round(((base + dh) % 360 + 360) % 360);
+  const s = (base: number) => Math.round(clamp(base * ds, 0, 100));
   return [
-    [0.00, `hsla(28,  90%, 48%, ${alpha})`],            // deep amber
-    [0.16, `hsla(38,  95%, 58%, ${alpha})`],            // warm gold
-    [0.33, `hsla(45, 100%, 70%, ${alpha})`],            // bright gold
-    [0.50, `hsla(50, 100%, 88%, ${alpha * 1.05})`],     // champagne highlight
-    [0.66, `hsla(45, 100%, 70%, ${alpha})`],            // bright gold
-    [0.83, `hsla(38,  95%, 58%, ${alpha})`],            // warm gold
-    [1.00, `hsla(28,  90%, 48%, ${alpha})`],            // deep amber
+    [0.00, `hsla(${h(28)},  ${s(90)}%, 48%, ${alpha})`],
+    [0.16, `hsla(${h(38)},  ${s(95)}%, 58%, ${alpha})`],
+    [0.33, `hsla(${h(45)}, ${s(100)}%, 70%, ${alpha})`],
+    [0.50, `hsla(${h(50)}, ${s(100)}%, 88%, ${alpha * 1.05})`],
+    [0.66, `hsla(${h(45)}, ${s(100)}%, 70%, ${alpha})`],
+    [0.83, `hsla(${h(38)},  ${s(95)}%, 58%, ${alpha})`],
+    [1.00, `hsla(${h(28)},  ${s(90)}%, 48%, ${alpha})`],
   ];
 }
 
@@ -120,10 +131,11 @@ export function applyIridescentEffect(
   intensity: number,
   hueOffset: number,
   sparkleExclusion?: SparkleExclusion[],
+  palette: PaletteShift = {},
 ): void {
   if (intensity <= 0) return;
 
-  const stops = getIridescentStops(intensity);
+  const stops = getIridescentStops(intensity, palette);
   const grad = ctx.createLinearGradient(0, 0, canvasW, canvasH);
   stops.forEach(([offset, _color], i) => {
     const shiftedIdx = Math.round((i + hueOffset / 60)) % 7;
@@ -146,11 +158,16 @@ export function applyIridescentEffect(
   const radius = Math.min(canvasW, canvasH) / 2;
   const rimAlpha = clamp(intensity * 0.55, 0, 0.7);
 
+  const dh = palette.hue ?? 0;
+  const ds = palette.sat ?? 1;
+  const h = (base: number) => Math.round(((base + dh) % 360 + 360) % 360);
+  const s = (base: number) => Math.round(clamp(base * ds, 0, 100));
+
   const rim = ctx.createRadialGradient(cx, cy, radius * 0.45, cx, cy, radius * 1.05);
-  rim.addColorStop(0,    'hsla(45, 100%, 70%, 0)');                    // clear centre
-  rim.addColorStop(0.55, `hsla(45, 100%, 70%, ${rimAlpha * 0.20})`);   // soft transition
-  rim.addColorStop(0.85, `hsla(42, 100%, 65%, ${rimAlpha * 0.75})`);   // warm gold rim
-  rim.addColorStop(1,    `hsla(35,  95%, 55%, ${rimAlpha})`);          // deep amber edge
+  rim.addColorStop(0,    `hsla(${h(45)}, ${s(100)}%, 70%, 0)`);                  // clear centre
+  rim.addColorStop(0.55, `hsla(${h(45)}, ${s(100)}%, 70%, ${rimAlpha * 0.20})`); // soft transition
+  rim.addColorStop(0.85, `hsla(${h(42)}, ${s(100)}%, 65%, ${rimAlpha * 0.75})`); // warm rim
+  rim.addColorStop(1,    `hsla(${h(35)},  ${s(95)}%, 55%, ${rimAlpha})`);        // deep edge
 
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
@@ -263,9 +280,17 @@ export function drawFrame(
   frameImg: HTMLImageElement,
   canvasW: number,
   canvasH: number,
+  filter?: string,
 ): void {
   const { x, y, size } = buildFrameDrawParams(canvasW, canvasH);
-  ctx.drawImage(frameImg, x, y, size, size);
+  if (filter && filter !== 'none') {
+    ctx.save();
+    ctx.filter = filter;
+    ctx.drawImage(frameImg, x, y, size, size);
+    ctx.restore();
+  } else {
+    ctx.drawImage(frameImg, x, y, size, size);
+  }
 }
 
 /**
