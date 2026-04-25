@@ -260,16 +260,16 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, 
         ) : null}
 
         {/* Soft dark vignette behind the hero text — improves contrast for
-            "I am #Shining" without obscuring the kaleidoscope at the edges. */}
+            "I am #Shining" without obscuring the kaleidoscope. The overlay
+            spans the full banner so the gradient fades to transparent
+            naturally; no hard edge anywhere. */}
         <div
           aria-hidden
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '8rem',
-            background: 'radial-gradient(ellipse 55% 100% at 50% 30%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.32) 45%, transparent 80%)',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 60% 70% at 50% 0%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 35%, rgba(0,0,0,0.10) 65%, transparent 100%)',
             pointerEvents: 'none',
             zIndex: 2,
           }}
