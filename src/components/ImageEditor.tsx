@@ -155,6 +155,35 @@ export function ImageEditor() {
 
   const transformRef = useRef<PhotoTransform>({ x: 0, y: 0, scale: 1 });
 
+  // ── Frame style ─────────────────────────────────────────────────────────
+  // Three colour variants of the same Shining frame. Each picks a hue shift
+  // (rotates the gold palette) + a CSS `filter` applied when drawing the
+  // frame PNG, so the metallic ring matches the iridescent shine.
+  type FrameStyle = 'gold' | 'rose' | 'silver';
+  const FRAME_STYLES: Record<FrameStyle, {
+    label: string;
+    swatch: string;
+    filter: string;
+    hueShift: number;
+    satScale: number;
+  }> = {
+    gold:   { label: 'Gold',   swatch: 'linear-gradient(135deg,#daa520,#ffd700)', filter: 'none',                                       hueShift:   0, satScale: 1   },
+    rose:   { label: 'Rose',   swatch: 'linear-gradient(135deg,#c2735a,#ffb7a3)', filter: 'hue-rotate(-25deg) saturate(0.95)',          hueShift: -25, satScale: 0.95 },
+    silver: { label: 'Silver', swatch: 'linear-gradient(135deg,#9ea0a6,#e9ecf1)', filter: 'saturate(0.18) brightness(1.1)',             hueShift:   0, satScale: 0.18 },
+  };
+  const [frameStyle, setFrameStyle] = useState<FrameStyle>('gold');
+  const frameStyleRef = useRef<FrameStyle>('gold');
+  useEffect(() => { frameStyleRef.current = frameStyle; }, [frameStyle]);
+
+  // ── Toast ───────────────────────────────────────────────────────────────
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2200);
+  };
+
   // ── Banner-sync ─────────────────────────────────────────────────────────
   // After the user finishes panning/zooming the profile photo, mirror the
   // same sample point and zoom into the kaleidoscope banner so the two
@@ -208,13 +237,15 @@ export function ImageEditor() {
       transformRef.current,
     );
 
+    const fs = FRAME_STYLES[frameStyleRef.current];
     applyIridescentEffect(
       ctx, CANVAS_SIZE, CANVAS_SIZE,
       intensityRef.current, STATIC_HUE,
       exclusion,
+      { hue: fs.hueShift, sat: fs.satScale },
     );
     if (frameImgRef.current) {
-      drawFrame(ctx, frameImgRef.current, CANVAS_SIZE, CANVAS_SIZE);
+      drawFrame(ctx, frameImgRef.current, CANVAS_SIZE, CANVAS_SIZE, fs.filter);
     }
     maskToCircle(ctx, CANVAS_SIZE, CANVAS_SIZE);
 
@@ -342,6 +373,9 @@ export function ImageEditor() {
 
   // Re-render when intensity slider changes
   useEffect(() => { render(); }, [intensity, render]);
+
+  // Re-render when frame style changes
+  useEffect(() => { render(); }, [frameStyle, render]);
 
   // Clamp helper — reads current photo natural dimensions
   const clamp = (t: PhotoTransform) => {
@@ -545,10 +579,12 @@ export function ImageEditor() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [headerMenuOpen]);
 
-  const handleDownloadProfile = () => {
-    if (canvasRef.current) {
-      saveCanvasImages([{ canvas: canvasRef.current, filename: 'shining-profile.png' }]);
-    }
+  const downloadToastLabel = onIOS ? 'Saved' : 'Downloaded';
+
+  const handleDownloadProfile = async () => {
+    if (!canvasRef.current) return;
+    await saveCanvasImages([{ canvas: canvasRef.current, filename: 'shining-profile.png' }]);
+    showToast(downloadToastLabel);
   };
 
   const handleDownloadHeader = async (withText: boolean) => {
@@ -556,16 +592,30 @@ export function ImageEditor() {
     if (bannerRendererRef.current) {
       const c = await bannerRendererRef.current(withText);
       if (c) {
-        saveCanvasImages([
+        await saveCanvasImages([
           { canvas: c, filename: withText ? 'shining-banner-with-text.png' : 'shining-banner.png' },
         ]);
+        showToast(downloadToastLabel);
         return;
       }
     }
-    // Fallback: use the live preview canvas (no-text version)
     if (!withText && bannerCanvasRef.current) {
-      saveCanvasImages([{ canvas: bannerCanvasRef.current, filename: 'shining-banner.png' }]);
+      await saveCanvasImages([{ canvas: bannerCanvasRef.current, filename: 'shining-banner.png' }]);
+      showToast(downloadToastLabel);
     }
+  };
+
+  // Whether the user has moved/zoomed away from the default crop. Drives
+  // visibility of the "Reset crop" link.
+  const isDefaultCrop = (() => {
+    const t = transformRef.current;
+    return t.x === 0 && t.y === 0 && t.scale === 1;
+  })();
+
+  const handleResetCrop = () => {
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    render();
+    setBannerSampling({ offsetX: 0.5, offsetY: 0.5, scale: 1 });
   };
 
   return (
@@ -828,6 +878,57 @@ export function ImageEditor() {
                 />
               </div>
 
+              {/* Frame style picker — three colour variants */}
+              <div className="flex flex-col gap-2">
+                <span style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
+                  Frame style
+                </span>
+                <div role="radiogroup" aria-label="Frame style" style={{ display: 'flex', gap: '0.5rem' }}>
+                  {(Object.keys(FRAME_STYLES) as FrameStyle[]).map((key) => {
+                    const s = FRAME_STYLES[key];
+                    const active = key === frameStyle;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        onClick={() => setFrameStyle(key)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.55rem 0.75rem',
+                          background: 'transparent',
+                          border: active ? '1px solid var(--color-gold-light)' : '1px solid rgba(184,134,11,0.3)',
+                          borderRadius: '0.6rem',
+                          color: active ? 'var(--color-gold-light)' : 'var(--color-text-muted)',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'border-color 0.2s, color 0.2s',
+                        }}
+                      >
+                        <span
+                          aria-hidden
+                          style={{
+                            display: 'inline-block',
+                            width: '0.85rem',
+                            height: '0.85rem',
+                            borderRadius: '50%',
+                            background: s.swatch,
+                            boxShadow: active ? '0 0 0 2px rgba(255,215,0,0.35)' : 'none',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span>{s.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Primary action — download the profile picture */}
               <button
                 onClick={handleDownloadProfile}
@@ -955,23 +1056,41 @@ export function ImageEditor() {
                 )}
               </div>
 
-              {/* Subtle text link to swap the photo */}
-              <button
-                onClick={() => setPhotoSrc(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-text-muted)',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '3px',
-                  margin: '0.25rem auto 0',
-                  padding: '0.25rem 0.5rem',
-                }}
-              >
-                Change photo
-              </button>
+              {/* Subtle text links: change photo + reset crop */}
+              <div style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center', margin: '0.25rem 0 0' }}>
+                <button
+                  onClick={() => setPhotoSrc(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--color-text-muted)',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '3px',
+                    padding: '0.25rem 0.25rem',
+                  }}
+                >
+                  Change photo
+                </button>
+                {!isDefaultCrop && (
+                  <button
+                    onClick={handleResetCrop}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-text-muted)',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '3px',
+                      padding: '0.25rem 0.25rem',
+                    }}
+                  >
+                    Reset crop
+                  </button>
+                )}
+              </div>
 
               {onIOS && (
                 <p style={{
@@ -1004,6 +1123,42 @@ export function ImageEditor() {
         />,
         bannerPortalTarget,
       )}
+
+      {/* Toast — confirmation after a download */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="toast"
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            style={{
+              position: 'fixed',
+              left: '50%',
+              bottom: '1.5rem',
+              transform: 'translateX(-50%)',
+              background: 'rgba(20, 12, 2, 0.92)',
+              border: '1px solid rgba(184, 134, 11, 0.5)',
+              color: 'var(--color-gold-light)',
+              padding: '0.7rem 1.2rem',
+              borderRadius: '999px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.55)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              zIndex: 100,
+              pointerEvents: 'none',
+            }}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
