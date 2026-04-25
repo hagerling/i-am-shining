@@ -19,6 +19,9 @@ interface Props {
   /** Optional face centroid (normalised 0–1 photo coords) — when supplied
    *  the kaleidoscope anchors on the face so eyes/nose/mouth appear in every facet. */
   faceCenter?: { x: number; y: number } | null;
+  /** When the user pans/zooms the profile photo, this captures the matching
+   *  sample point + zoom for the kaleidoscope so the banner follows along. */
+  sampling?: { offsetX: number; offsetY: number; scale: number } | null;
   /** Fired whenever a freshly rendered banner blob URL is ready. The parent
    *  uses this to gate the moment it reveals the profile picture, so the
    *  banner and profile picture fade in synchronously. */
@@ -34,7 +37,7 @@ interface Props {
   ) => void;
 }
 
-export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, onRendererReady }: Props) {
+export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCanvasReady, onRendererReady }: Props) {
   // Canvas lives offscreen — we display the rendered result as an <img>
   // (via a blob URL) so iOS users can long-press → "Save to Photos".
   const canvasRef    = useRef<HTMLCanvasElement>(
@@ -42,7 +45,28 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, 
   );
   const photoRef     = useRef<HTMLImageElement | null>(null);
   const frameRef     = useRef<HTMLImageElement | null>(null);
-  const optionsRef   = useRef<HeaderOptions>(makeRandomHeaderOptions());
+  // baseOptionsRef holds the random (or face-anchored) options. When the
+  // user pans/zooms the profile, we apply that on TOP of these — keeping
+  // the same colours/seeds/density and only updating the sample point + zoom.
+  const baseOptionsRef = useRef<HeaderOptions>(makeRandomHeaderOptions());
+  const samplingRef    = useRef<Props['sampling']>(null);
+  const optionsRef     = useRef<HeaderOptions>(baseOptionsRef.current);
+
+  /** Apply the user's transform on top of baseOptionsRef → optionsRef. */
+  const applySampling = () => {
+    const base = baseOptionsRef.current;
+    const s = samplingRef.current;
+    if (!s) {
+      optionsRef.current = base;
+      return;
+    }
+    optionsRef.current = {
+      ...base,
+      photoOffsetX: s.offsetX,
+      photoOffsetY: s.offsetY,
+      photoScale:   base.photoScale * s.scale,
+    };
+  };
   const [imgUrl,     setImgUrl]     = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -158,7 +182,8 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, 
   }, []);
 
   const regenerate = () => {
-    optionsRef.current = makeRandomHeaderOptions(faceCenter ?? undefined);
+    baseOptionsRef.current = makeRandomHeaderOptions(faceCenter ?? undefined);
+    applySampling();
     generate();
   };
 
@@ -167,10 +192,21 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, 
   // their eyes/nose/mouth prominently.
   useEffect(() => {
     if (!faceCenter || !photoRef.current) return;
-    optionsRef.current = makeRandomHeaderOptions(faceCenter);
+    baseOptionsRef.current = makeRandomHeaderOptions(faceCenter);
+    applySampling();
     generate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faceCenter]);
+
+  // Re-render the banner when the user has settled on a new pan/zoom.
+  // Skips the initial null sampling so we don't trigger an extra generation
+  // on first mount before any user interaction.
+  useEffect(() => {
+    samplingRef.current = sampling ?? null;
+    applySampling();
+    if (sampling && photoRef.current) generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sampling]);
 
   // Load photo and auto-generate
   useEffect(() => {
