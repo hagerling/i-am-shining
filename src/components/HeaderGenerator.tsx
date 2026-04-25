@@ -332,8 +332,53 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCan
             <ArrowsClockwise size={18} weight="bold" />
           </button>
         </div>
-
       </div>
+
+      {/* Reflection of the banner — appears below the banner, behind the
+          lower half of the profile circle. Same image flipped vertically with
+          a gradient mask so it fades from a clean mirror at the top into
+          transparent at the bottom. */}
+      {imgUrl && (
+        <div
+          aria-hidden
+          style={{
+            position: 'relative',
+            width: '100vw',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            maxWidth: '100vw',
+            height: 'min(37.5vw, 190px)',
+            overflow: 'hidden',
+            pointerEvents: 'none',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.20) 55%, transparent 100%)',
+            maskImage:
+              'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.20) 55%, transparent 100%)',
+            zIndex: 0,
+          }}
+        >
+          <img
+            src={imgUrl}
+            alt=""
+            draggable={false}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              // Match the original banner height — flipping it then exposes
+              // the banner's BOTTOM rows at the reflection's top, so the
+              // mirror is seamless at the boundary.
+              height: 'calc(8rem + min(37.5vw, 190px))',
+              objectFit: 'cover',
+              transform: 'scaleY(-1)',
+              display: 'block',
+              userSelect: 'none',
+              WebkitTouchCallout: 'none',
+            }}
+          />
+        </div>
+      )}
 
       {/* Banner-specific component styles (tooltip + icon buttons). Scoped by
           class name so they don't bleed into the rest of the page. */}
