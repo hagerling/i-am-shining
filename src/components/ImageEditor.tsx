@@ -275,20 +275,79 @@ export function ImageEditor() {
     if (photoImgRef.current) render();
   }, [render]);
 
-  // Keyboard shortcut: "R" resets the photo pan/zoom when editing
+  // Keyboard shortcuts (active only while a photo is loaded):
+  //   R or 0   reset the crop
+  //   + / =    zoom in     (Shift = bigger step)
+  //   - / _    zoom out
+  //   ←↑→↓     pan         (Shift = bigger step)
+  // Skipped when the user is typing in an input or contentEditable,
+  // so the shine slider's native arrow-key value-change still works.
   useEffect(() => {
     if (!photoSrc) return;
+    const ZOOM_STEP = 1.15;
+    const PAN_STEP  = 24;
+    const PAN_STEP_BIG = 80;
+
+    const isFormField = (el: EventTarget | null) => {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return true;
+      if (el.isContentEditable) return true;
+      return false;
+    };
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
-      if (e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === 'r' || e.key === 'R') {
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        render();
+      if (isFormField(e.target)) return;
+      const t = transformRef.current;
+      let next: PhotoTransform | null = null;
+
+      switch (e.key) {
+        case 'r':
+        case 'R':
+        case '0':
+          next = { x: 0, y: 0, scale: 1 };
+          break;
+        case '+':
+        case '=':
+          next = { ...t, scale: Math.min(MAX_SCALE, t.scale * (e.shiftKey ? ZOOM_STEP * ZOOM_STEP : ZOOM_STEP)) };
+          break;
+        case '-':
+        case '_':
+          next = { ...t, scale: Math.max(MIN_SCALE, t.scale / (e.shiftKey ? ZOOM_STEP * ZOOM_STEP : ZOOM_STEP)) };
+          break;
+        case 'ArrowLeft':
+          next = { ...t, x: t.x + (e.shiftKey ? PAN_STEP_BIG : PAN_STEP) };
+          break;
+        case 'ArrowRight':
+          next = { ...t, x: t.x - (e.shiftKey ? PAN_STEP_BIG : PAN_STEP) };
+          break;
+        case 'ArrowUp':
+          next = { ...t, y: t.y + (e.shiftKey ? PAN_STEP_BIG : PAN_STEP) };
+          break;
+        case 'ArrowDown':
+          next = { ...t, y: t.y - (e.shiftKey ? PAN_STEP_BIG : PAN_STEP) };
+          break;
+        default:
+          return;
+      }
+
+      if (!next) return;
+      e.preventDefault();
+      transformRef.current = clamp(next);
+      render();
+      // Reset shortcuts also clear banner sampling so the kaleidoscope
+      // returns to its face-anchored default. Pan/zoom keys defer to
+      // the existing debounced settle so the banner refreshes once
+      // the user pauses keypresses.
+      if (e.key === 'r' || e.key === 'R' || e.key === '0') {
+        setBannerSampling({ offsetX: 0.5, offsetY: 0.5, scale: 1 });
+      } else {
+        settleBannerSampling();
       }
     };
+
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [photoSrc, render]);
+  }, [photoSrc, render, settleBannerSampling]);
 
   // Load photo once on upload; reset transform. Downscale huge photos to a
   // max 2400 px longest side so we don't waste memory on 48-megapixel phone

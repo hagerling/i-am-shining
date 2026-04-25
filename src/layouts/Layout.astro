@@ -15,7 +15,7 @@ const {
 } = Astro.props;
 
 const siteUrl = 'https://i-am-shining.com';
-const ogImage = `${siteUrl}/og-image.svg`;
+const ogImage = `${siteUrl}/og-image.png`;
 const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
 ---
 
@@ -51,8 +51,10 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
     <meta property="og:title"       content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image"       content={ogImage} />
+    <meta property="og:image:type"   content="image/png" />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"    content="I am Shining — golden profile picture & LinkedIn banner" />
 
     <!-- Twitter / X card -->
     <meta name="twitter:card"        content="summary_large_image" />

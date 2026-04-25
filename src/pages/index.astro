@@ -21,7 +21,17 @@ import testimonials from '../data/testimonials.json';
       </div>
     </section>
 
-    <section class="editor-section reveal" aria-label="Profile photo editor">
+    <section
+      id="step-upload"
+      class="editor-section reveal"
+      aria-label="Profile photo editor"
+    >
+      {/* The HowTo schema deep-links to #step-upload, #step-adjust,
+          #step-download — all live inside the editor section. The two
+          inner anchor markers below have no visible content; they exist
+          purely for the structured-data URLs to resolve. */}
+      <span id="step-adjust"   class="sr-only">Adjust the look</span>
+      <span id="step-download" class="sr-only">Download</span>
       <ImageEditor client:load />
     </section>
 
