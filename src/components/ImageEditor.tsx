@@ -326,10 +326,46 @@ export function ImageEditor() {
             axis === 'x'
               ? zones[k].x + zones[k].w / 2
               : zones[k].y + zones[k].h / 2;
-          setFaceCenter({
-            x: (centre('leftEye', 'x') + centre('rightEye', 'x') + centre('mouth', 'x')) / 3,
-            y: (centre('leftEye', 'y') + centre('rightEye', 'y') + centre('mouth', 'y')) / 3,
-          });
+          const fcx =
+            (centre('leftEye', 'x') + centre('rightEye', 'x') + centre('mouth', 'x')) / 3;
+          const fcy =
+            (centre('leftEye', 'y') + centre('rightEye', 'y') + centre('mouth', 'y')) / 3;
+          setFaceCenter({ x: fcx, y: fcy });
+
+          // ── Auto-frame the head ────────────────────────────────────────
+          // Only when the user hasn't manually adjusted yet — otherwise
+          // we'd snap their crop away while they're working.
+          const t0 = transformRef.current;
+          const userTouched = !(t0.x === 0 && t0.y === 0 && t0.scale === 1);
+          if (!userTouched && targetImg.naturalWidth && targetImg.naturalHeight) {
+            // Face vertical extent. Eyes-to-mouth is ~50% of full face height
+            // (forehead/hair ~25% above, chin ~25% below), so multiply ×2.
+            const eyeTop = Math.min(zones.leftEye.y, zones.rightEye.y);
+            const mouthBottom = zones.mouth.y + zones.mouth.h;
+            const eyesToMouth = mouthBottom - eyeTop;
+            if (eyesToMouth > 0) {
+              const TARGET_FACE_FRAC = 0.62; // face fills ~62% of canvas height
+              const faceHeightNorm = eyesToMouth * 2.0;
+              const baseScale = Math.max(
+                CANVAS_SIZE / targetImg.naturalWidth,
+                CANVAS_SIZE / targetImg.naturalHeight,
+              );
+              const faceHeightAt1 = faceHeightNorm * targetImg.naturalHeight * baseScale;
+              let targetScale = (TARGET_FACE_FRAC * CANVAS_SIZE) / faceHeightAt1;
+              // Don't zoom out below cover-fit (no empty edges) and don't
+              // zoom in past 4× (avoids cropping into a blurry mess).
+              targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE * 0.8, targetScale));
+
+              const finalScale = baseScale * targetScale;
+              const sw = targetImg.naturalWidth  * finalScale;
+              const sh = targetImg.naturalHeight * finalScale;
+              const tx = sw * (0.5 - fcx);
+              const ty = sh * (0.5 - fcy);
+
+              transformRef.current = clamp({ x: tx, y: ty, scale: targetScale });
+            }
+          }
+
           render();
         })
         .catch(() => { /* already logged inside faceDetection */ });
