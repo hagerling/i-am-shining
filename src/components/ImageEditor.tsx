@@ -195,7 +195,7 @@ export function ImageEditor() {
     canvasRef.current = el;
     if (!el) return;
     // Only set the canvas's internal pixel buffer — NOT its CSS size. React's
-    // inline style ({ width: 'min(90vw, 400px)' }) already handles display size,
+    // inline style ({ width: 'min(75vw, 380px)' }) already handles display size,
     // and overriding it here made the canvas render at 600 px while the idle
     // <img> overlay stayed at 400 px, causing a duplicate offset image.
     const dpr = window.devicePixelRatio || 1;
@@ -531,7 +531,7 @@ export function ImageEditor() {
     <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto px-4">
 
       {/* Fixed-size slot — dropzone and canvas always occupy this exact space */}
-      <div style={{ width: 'min(90vw, 400px)', height: 'min(90vw, 400px)', position: 'relative', flexShrink: 0 }}>
+      <div style={{ width: 'min(75vw, 380px)', height: 'min(75vw, 380px)', position: 'relative', flexShrink: 0 }}>
       <AnimatePresence mode="wait" initial={false}>
         {!(photoSrc && bannerReady) && (
           <motion.div
