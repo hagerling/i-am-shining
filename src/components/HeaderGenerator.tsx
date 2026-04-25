@@ -235,7 +235,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, 
           // Height is taller than the banner's native 4:1 to make room for the
           // profile picture overlap. The img uses object-fit: cover so the
           // kaleidoscope fills the slot without distortion — excess width crops.
-          height: 'calc(8rem + min(45vw, 200px))',
+          height: 'calc(8rem + min(37.5vw, 190px))',
           overflow: 'hidden',
           boxShadow: '0 4px 32px rgba(0,0,0,0.45)',
           background: '#0e0902',
@@ -258,6 +258,22 @@ export function HeaderGenerator({ photoSrc, faceCenter, onReady, onCanvasReady, 
             draggable={false}
           />
         ) : null}
+
+        {/* Soft dark vignette behind the hero text — improves contrast for
+            "I am #Shining" without obscuring the kaleidoscope at the edges. */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '8rem',
+            background: 'radial-gradient(ellipse 55% 100% at 50% 30%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.32) 45%, transparent 80%)',
+            pointerEvents: 'none',
+            zIndex: 2,
+          }}
+        />
 
         {/* Icon-only action buttons, top-right corner of the banner. */}
         <div style={{

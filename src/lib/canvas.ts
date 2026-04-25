@@ -137,34 +137,24 @@ export function applyIridescentEffect(
   ctx.fillRect(0, 0, canvasW, canvasH);
   ctx.restore();
 
-  // ── Lens flare ──────────────────────────────────────────────────────────
-  // Hot golden core fading to deep amber, with a horizontal anamorphic streak
-  // (the wide soft beam typical of cinematic lens flares).
+  // ── Rim glow ────────────────────────────────────────────────────────────
+  // Instead of a central bloom (which washes out the face), we light the
+  // edges of the circular crop. The result is a halo around the subject —
+  // glow in the corners/perimeter of the image, the centre stays clear.
   const cx = canvasW / 2;
   const cy = canvasH / 2;
-  const bloomAlpha = clamp(intensity * 0.7, 0, 0.85);
+  const radius = Math.min(canvasW, canvasH) / 2;
+  const rimAlpha = clamp(intensity * 0.55, 0, 0.7);
 
-  // Big golden bloom — soft halo
-  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, canvasW * 0.65);
-  bloom.addColorStop(0.00, `hsla(50, 100%, 92%, ${bloomAlpha})`);             // hot champagne core
-  bloom.addColorStop(0.20, `hsla(45, 100%, 72%, ${bloomAlpha * 0.85})`);      // bright gold
-  bloom.addColorStop(0.55, `hsla(35,  95%, 52%, ${bloomAlpha * 0.40})`);      // amber
-  bloom.addColorStop(1.00, 'hsla(28, 85%, 35%, 0)');
+  const rim = ctx.createRadialGradient(cx, cy, radius * 0.45, cx, cy, radius * 1.05);
+  rim.addColorStop(0,    'hsla(45, 100%, 70%, 0)');                    // clear centre
+  rim.addColorStop(0.55, `hsla(45, 100%, 70%, ${rimAlpha * 0.20})`);   // soft transition
+  rim.addColorStop(0.85, `hsla(42, 100%, 65%, ${rimAlpha * 0.75})`);   // warm gold rim
+  rim.addColorStop(1,    `hsla(35,  95%, 55%, ${rimAlpha})`);          // deep amber edge
 
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
-  ctx.fillStyle = bloom;
-  ctx.fillRect(0, 0, canvasW, canvasH);
-  ctx.restore();
-
-  // Tight bright "sun" core — small, hot, makes the centre feel like a light
-  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, canvasW * 0.22);
-  core.addColorStop(0,    `hsla(55, 100%, 96%, ${clamp(intensity * 0.55, 0, 0.7)})`);
-  core.addColorStop(0.5,  `hsla(48, 100%, 78%, ${clamp(intensity * 0.25, 0, 0.4)})`);
-  core.addColorStop(1,    'hsla(45, 100%, 60%, 0)');
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.fillStyle = core;
+  ctx.fillStyle = rim;
   ctx.fillRect(0, 0, canvasW, canvasH);
   ctx.restore();
 
