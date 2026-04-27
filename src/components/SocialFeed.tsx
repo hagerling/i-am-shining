@@ -78,7 +78,7 @@ export function SocialFeed({ testimonials }: Props) {
       {/* Masonry testimonial grid */}
       <div
         ref={gridRef}
-        style={{ columns: '2', columnGap: '1.25rem' }}
+        style={{ columns: '2', columnGap: '2.25rem' }}
         className="testimonial-grid"
       >
         {testimonials.map((t, i) => (
@@ -89,16 +89,15 @@ export function SocialFeed({ testimonials }: Props) {
             itemType="https://schema.org/Review"
             style={{
               breakInside: 'avoid',
-              marginBottom: '1.25rem',
+              marginBottom: '2.25rem',
               background: 'var(--color-surface)',
               border: '1px solid rgba(184, 134, 11, 0.12)',
               borderRadius: 'var(--radius-card)',
-              padding: '1.5rem',
+              padding: '1.75rem',
               display: 'inline-block',
               width: '100%',
               boxSizing: 'border-box',
-              transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1), border-color 0.25s, box-shadow 0.25s',
-              margin: 0,
+              transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1)',
             }}
           >
             <meta itemProp="itemReviewed" content="I am Shining" />
@@ -201,10 +200,6 @@ export function SocialFeed({ testimonials }: Props) {
       <style>{`
         @media (max-width: 600px) {
           .testimonial-grid { columns: 1 !important; }
-        }
-        .testimonial-card:hover {
-          border-color: rgba(184, 134, 11, 0.35) !important;
-          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
         }
       `}</style>
     </section>
