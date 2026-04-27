@@ -40,7 +40,7 @@ export function SocialFeed({ testimonials }: Props) {
   }, []);
 
   return (
-    <section style={{ width: '100%', maxWidth: '860px', margin: '0 auto', padding: '5rem 1rem 5rem' }}>
+    <section style={{ width: '100%', maxWidth: '1080px', margin: '0 auto', padding: '5rem 1.5rem 5rem' }}>
       {/* Section header */}
       <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
         <div style={{
@@ -75,29 +75,39 @@ export function SocialFeed({ testimonials }: Props) {
         </h2>
       </div>
 
-      {/* Masonry testimonial grid */}
+      {/* Bento testimonial grid — varied card widths cycle every 6 cards.
+          The first card in each cycle (4-col) reads as the "featured" one
+          with a slightly larger quote face. */}
       <div
         ref={gridRef}
-        style={{ columns: '2', columnGap: '2.25rem' }}
         className="testimonial-grid"
       >
-        {testimonials.map((t, i) => (
+        {testimonials.map((t, i) => {
+          const featured = i % 6 === 0;
+          return (
           <figure
             key={i}
             className="testimonial-card"
+            data-featured={featured ? 'true' : undefined}
             itemScope
             itemType="https://schema.org/Review"
             style={{
-              breakInside: 'avoid',
-              marginBottom: '2.25rem',
               background: 'var(--color-surface)',
               border: '1px solid rgba(184, 134, 11, 0.12)',
               borderRadius: 'var(--radius-card)',
-              padding: '1.75rem',
-              display: 'inline-block',
-              width: '100%',
+              padding: featured ? '2rem 2.25rem' : '1.5rem 1.75rem',
               boxSizing: 'border-box',
               transition: 'opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1)',
+              margin: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '1.25rem',
+              minHeight: featured ? '11rem' : '9rem',
+              ...(featured ? {
+                background: 'linear-gradient(160deg, var(--color-surface-2) 0%, var(--color-surface) 100%)',
+                borderColor: 'rgba(184, 134, 11, 0.28)',
+              } : {}),
             }}
           >
             <meta itemProp="itemReviewed" content="I am Shining" />
@@ -194,12 +204,40 @@ export function SocialFeed({ testimonials }: Props) {
               </div>
             </figcaption>
           </figure>
-        ))}
+        );
+        })}
       </div>
 
       <style>{`
-        @media (max-width: 600px) {
-          .testimonial-grid { columns: 1 !important; }
+        .testimonial-grid {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 1.5rem;
+        }
+        /* Cycle of varied widths every 6 cards: 4, 2, 3, 3, 2, 4
+         * Row 1: featured (4) + compact (2)
+         * Row 2: half-width (3) + half-width (3)
+         * Row 3: compact (2) + featured (4) */
+        .testimonial-card:nth-child(6n + 1) { grid-column: span 4; }
+        .testimonial-card:nth-child(6n + 2) { grid-column: span 2; }
+        .testimonial-card:nth-child(6n + 3) { grid-column: span 3; }
+        .testimonial-card:nth-child(6n + 4) { grid-column: span 3; }
+        .testimonial-card:nth-child(6n + 5) { grid-column: span 2; }
+        .testimonial-card:nth-child(6n + 6) { grid-column: span 4; }
+        /* Featured cards get a slightly larger quote face for visual rhythm. */
+        .testimonial-card[data-featured="true"] blockquote {
+          font-size: 1.25rem !important;
+          line-height: 1.55 !important;
+        }
+        @media (max-width: 720px) {
+          .testimonial-grid { grid-template-columns: 1fr !important; gap: 1.25rem; }
+          .testimonial-card,
+          .testimonial-card:nth-child(6n + 1),
+          .testimonial-card:nth-child(6n + 2),
+          .testimonial-card:nth-child(6n + 3),
+          .testimonial-card:nth-child(6n + 4),
+          .testimonial-card:nth-child(6n + 5),
+          .testimonial-card:nth-child(6n + 6) { grid-column: span 1; }
         }
       `}</style>
     </section>

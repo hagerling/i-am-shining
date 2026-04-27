@@ -22,6 +22,9 @@ interface Props {
   /** When the user pans/zooms the profile photo, this captures the matching
    *  sample point + zoom for the kaleidoscope so the banner follows along. */
   sampling?: { offsetX: number; offsetY: number; scale: number } | null;
+  /** CSS filter applied on top of the rendered banner so the kaleidoscope's
+   *  metallic tone matches the chosen frame style (Gold/Rose/Silver). */
+  tintFilter?: string;
   /** Fired whenever a freshly rendered banner blob URL is ready. The parent
    *  uses this to gate the moment it reveals the profile picture, so the
    *  banner and profile picture fade in synchronously. */
@@ -37,7 +40,9 @@ interface Props {
   ) => void;
 }
 
-export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCanvasReady, onRendererReady }: Props) {
+export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, onReady, onCanvasReady, onRendererReady }: Props) {
+  const tintRef = useRef<string | undefined>(tintFilter);
+  useEffect(() => { tintRef.current = tintFilter; }, [tintFilter]);
   // Canvas lives offscreen — we display the rendered result as an <img>
   // (via a blob URL) so iOS users can long-press → "Save to Photos".
   const canvasRef    = useRef<HTMLCanvasElement>(
@@ -94,7 +99,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCan
       const tmpCtx = tmp.getContext('2d');
       if (!tmpCtx) return null;
       tmpCtx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-      renderLinkedInHeader(tmpCtx, LI_W, LI_H, photoRef.current, frameRef.current, optionsRef.current, withText);
+      renderLinkedInHeader(tmpCtx, LI_W, LI_H, photoRef.current, frameRef.current, optionsRef.current, withText, tintRef.current);
       return tmp;
     });
   }, [onRendererReady, imgUrl]);
@@ -144,7 +149,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCan
       // Scale the context once so all renderer math stays in LinkedIn's
       // 1584 × 396 coord system; the physical canvas is 2× larger (3168 × 792).
       ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-      renderLinkedInHeader(ctx, LI_W, LI_H, photoRef.current, frameRef.current, optionsRef.current, false);
+      renderLinkedInHeader(ctx, LI_W, LI_H, photoRef.current, frameRef.current, optionsRef.current, false, tintRef.current);
       // Convert canvas to a blob URL so long-press → Save to Photos works
       canvas.toBlob((blob) => {
         if (!blob) {
@@ -208,6 +213,14 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sampling]);
 
+  // Re-render the banner when the user picks a different frame style so
+  // the tint is baked into the canvas (and therefore into downloads).
+  useEffect(() => {
+    if (!photoRef.current) return;
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tintFilter]);
+
   // Load photo and auto-generate
   useEffect(() => {
     if (!photoSrc) {
@@ -245,7 +258,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, onReady, onCan
     if (!tmpCtx) { setGenerating(false); return; }
     requestAnimationFrame(() => {
       tmpCtx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-      renderLinkedInHeader(tmpCtx, LI_W, LI_H, photoRef.current, frameRef.current, optionsRef.current, true);
+      renderLinkedInHeader(tmpCtx, LI_W, LI_H, photoRef.current, frameRef.current, optionsRef.current, true, tintRef.current);
       saveCanvasImage(tmp, 'shining-linkedin-header-with-text.png');
       setGenerating(false);
     });

@@ -1212,6 +1212,7 @@ export function ImageEditor() {
           photoSrc={photoSrc}
           faceCenter={faceCenter}
           sampling={bannerSampling}
+          tintFilter={FRAME_STYLES[frameStyle].filter}
           onReady={() => setBannerReady(true)}
           onCanvasReady={(c) => { bannerCanvasRef.current = c; }}
           onRendererReady={(fn) => { bannerRendererRef.current = fn; }}
