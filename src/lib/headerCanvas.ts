@@ -237,6 +237,9 @@ export function renderLinkedInHeader(
   frame: HTMLImageElement | null,
   opts: HeaderOptions,
   includeText = false,
+  /** CSS filter (e.g. "hue-rotate(-25deg) saturate(0.95)") applied as a final
+   * pass over the entire banner. Matches the user's chosen frame style. */
+  tintFilter?: string,
 ): void {
   const {
     seed, ballAngle,
@@ -789,5 +792,30 @@ export function renderLinkedInHeader(
     const v = Math.round(90 + rng() * 160);
     ctx.fillStyle = `rgba(${v},${v},${v},0.025)`;
     ctx.fillRect(x, y, 1, 1);
+  }
+
+  // ── Frame style tint pass ─────────────────────────────────────────────
+  // Re-blits the canvas onto itself through a CSS filter so the entire
+  // banner takes on the user's chosen accent (rose, silver, etc.). Done
+  // last so every layer (kaleidoscope, sparkles, text, grain) is tinted
+  // uniformly.
+  if (tintFilter && tintFilter !== 'none') {
+    const cw = ctx.canvas.width;
+    const ch = ctx.canvas.height;
+    const tmp = document.createElement('canvas');
+    tmp.width = cw;
+    tmp.height = ch;
+    const tctx = tmp.getContext('2d');
+    if (tctx) {
+      tctx.drawImage(ctx.canvas, 0, 0);
+      ctx.save();
+      // Reset transform so the blit lands in raw pixel coordinates,
+      // independent of any DPR scale the caller applied.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.filter = tintFilter;
+      ctx.drawImage(tmp, 0, 0);
+      ctx.restore();
+    }
   }
 }
