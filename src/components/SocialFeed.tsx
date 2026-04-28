@@ -216,11 +216,16 @@ export function SocialFeed({ testimonials }: Props) {
           gap: 1.5rem;
         }
         /* ── Frosted-glass card ───────────────────────────────────────────
-         * Layers: semi-transparent dark surface, soft golden inner sheen,
-         * a 1px gold-tinted border, a hairline highlight on the very top
-         * edge, and an outer warm glow + depth shadow. Backdrop-filter
-         * picks up the radial behind the section so the surface looks
-         * truly translucent. */
+         * Layered effect:
+         *   1. Translucent dark gradient base (the "glass body")
+         *   2. backdrop-filter blur + saturate (lifts the disco-ball + radial
+         *      behind into the glass for that real-translucency feel)
+         *   3. ::before — soft warm sheen at the top-left (the "shine")
+         *   4. ::after  — luminous gradient border via mask-composite: a
+         *      bright golden highlight on the top-left edge that fades
+         *      to a faint hairline on the bottom-right.
+         *   5. box-shadow stack: specular top inset, gold ambient glow,
+         *      depth shadow, contact shadow. */
         .testimonial-card {
           position: relative;
           isolation: isolate;
@@ -232,50 +237,92 @@ export function SocialFeed({ testimonials }: Props) {
           gap: 1.25rem;
           border-radius: var(--radius-card);
           background:
-            linear-gradient(165deg, rgba(36, 21, 5, 0.62) 0%, rgba(20, 12, 3, 0.48) 60%, rgba(20, 12, 3, 0.42) 100%);
-          backdrop-filter: blur(22px) saturate(140%);
-          -webkit-backdrop-filter: blur(22px) saturate(140%);
-          border: 1px solid rgba(184, 134, 11, 0.22);
+            linear-gradient(168deg,
+              rgba(48, 30, 10, 0.55) 0%,
+              rgba(28, 18, 6, 0.40) 55%,
+              rgba(20, 12, 3, 0.32) 100%);
+          backdrop-filter: blur(30px) saturate(160%);
+          -webkit-backdrop-filter: blur(30px) saturate(160%);
+          /* Border drawn by ::after — keep this transparent so the
+           * gradient ring sits flush with the rounded corners. */
+          border: 1px solid transparent;
           box-shadow:
-            inset 0 1px 0 rgba(255, 240, 200, 0.07),
-            0 1px 2px rgba(0, 0, 0, 0.25),
-            0 12px 36px rgba(0, 0, 0, 0.30),
-            0 0 0 1px rgba(255, 215, 0, 0.03);
+            inset 0 1px 0 rgba(255, 245, 210, 0.09),    /* specular top edge */
+            inset 0 -1px 0 rgba(0, 0, 0, 0.20),         /* shadow under bottom edge */
+            0 1px 2px rgba(0, 0, 0, 0.30),              /* contact shadow */
+            0 14px 40px rgba(0, 0, 0, 0.34),            /* depth shadow */
+            0 0 32px rgba(218, 165, 32, 0.06);          /* warm ambient glow */
           transition:
             opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
             transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        /* Soft sheen — top-left highlight that fades out by the centre.
-         * Sits above the bg, below the card content. */
+        /* ── Sheen pseudo (::before) — warm light hitting top-left ──── */
         .testimonial-card::before {
           content: '';
           position: absolute;
           inset: 0;
           border-radius: inherit;
           background:
-            radial-gradient(ellipse 80% 50% at 0% 0%, rgba(255, 232, 140, 0.10) 0%, transparent 55%),
-            linear-gradient(180deg, rgba(255, 240, 200, 0.04) 0%, transparent 30%);
+            radial-gradient(ellipse 90% 55% at 0% 0%, rgba(255, 232, 140, 0.16) 0%, rgba(255, 215, 0, 0.04) 30%, transparent 60%),
+            linear-gradient(180deg, rgba(255, 240, 200, 0.05) 0%, transparent 25%);
           pointer-events: none;
           z-index: -1;
         }
 
-        /* ── Featured card — bigger sheen + warm corner glow ────────── */
+        /* ── Luminous gradient border (::after) ────────────────────────
+         * mask-composite trick paints a 1px ring with a brightness
+         * gradient, so the border looks like glass catching light at
+         * the top edge and fading into shadow at the bottom. */
+        .testimonial-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1px;
+          background: linear-gradient(160deg,
+            rgba(255, 232, 140, 0.55) 0%,
+            rgba(218, 165, 32, 0.30) 25%,
+            rgba(184, 134, 11, 0.18) 55%,
+            rgba(184, 134, 11, 0.10) 80%,
+            rgba(255, 215, 0, 0.18) 100%);
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+                  mask-composite: exclude;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        /* ── Featured card — brighter glass, stronger glow ──────────── */
         .testimonial-card--featured {
           background:
-            linear-gradient(160deg, rgba(48, 28, 8, 0.70) 0%, rgba(24, 14, 4, 0.50) 60%, rgba(20, 12, 3, 0.45) 100%);
-          border-color: rgba(218, 165, 32, 0.40);
+            linear-gradient(160deg,
+              rgba(64, 40, 12, 0.62) 0%,
+              rgba(36, 22, 6, 0.45) 55%,
+              rgba(20, 12, 3, 0.38) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255, 240, 200, 0.12),
-            0 1px 2px rgba(0, 0, 0, 0.30),
-            0 18px 44px rgba(0, 0, 0, 0.38),
-            0 0 36px rgba(218, 165, 32, 0.10);
+            inset 0 1.5px 0 rgba(255, 245, 210, 0.14),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+            0 1px 2px rgba(0, 0, 0, 0.32),
+            0 22px 50px rgba(0, 0, 0, 0.40),
+            0 0 60px rgba(218, 165, 32, 0.14);          /* bigger gold halo */
         }
         .testimonial-card--featured::before {
           background:
-            radial-gradient(ellipse 90% 70% at 0% 0%,  rgba(255, 215, 0, 0.14) 0%, transparent 55%),
-            radial-gradient(ellipse 70% 60% at 100% 100%, rgba(255, 180, 80, 0.06) 0%, transparent 55%),
-            linear-gradient(180deg, rgba(255, 240, 200, 0.06) 0%, transparent 30%);
+            radial-gradient(ellipse 100% 70% at 0% 0%,  rgba(255, 215, 0, 0.22) 0%, rgba(255, 215, 0, 0.06) 30%, transparent 60%),
+            radial-gradient(ellipse 80% 60% at 100% 100%, rgba(255, 180, 80, 0.10) 0%, transparent 60%),
+            linear-gradient(180deg, rgba(255, 240, 200, 0.08) 0%, transparent 28%);
+        }
+        .testimonial-card--featured::after {
+          padding: 1.5px;  /* thicker border for the featured */
+          background: linear-gradient(155deg,
+            rgba(255, 240, 170, 0.85) 0%,
+            rgba(255, 215, 0, 0.55) 18%,
+            rgba(218, 165, 32, 0.28) 50%,
+            rgba(184, 134, 11, 0.18) 80%,
+            rgba(255, 215, 0, 0.32) 100%);
         }
 
         /* Bento width cycle: 4, 2, 3, 3, 2, 4 (sums to two rows of 6) */
@@ -303,24 +350,54 @@ export function SocialFeed({ testimonials }: Props) {
           .testimonial-card:nth-child(6n + 6) { grid-column: span 1; }
         }
 
-        /* Light theme — adjust translucency so the glass works on warm bg. */
+        /* ── Light theme variant ───────────────────────────────────────
+         * Inverted glass: bright translucent surface, darker gold border
+         * gradient so the edge still glows on the warm cream background. */
         [data-theme="light"] .testimonial-card {
           background:
-            linear-gradient(165deg, rgba(255, 248, 230, 0.80) 0%, rgba(255, 248, 230, 0.65) 100%);
-          border-color: rgba(184, 134, 11, 0.30);
+            linear-gradient(168deg,
+              rgba(255, 250, 235, 0.72) 0%,
+              rgba(252, 244, 225, 0.55) 60%,
+              rgba(248, 238, 216, 0.45) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.55),
-            0 1px 2px rgba(120, 80, 20, 0.05),
-            0 12px 36px rgba(120, 80, 20, 0.10);
+            inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+            inset 0 -1px 0 rgba(120, 80, 20, 0.06),
+            0 1px 2px rgba(120, 80, 20, 0.04),
+            0 14px 40px rgba(120, 80, 20, 0.10),
+            0 0 32px rgba(218, 165, 32, 0.10);
+        }
+        [data-theme="light"] .testimonial-card::before {
+          background:
+            radial-gradient(ellipse 90% 55% at 0% 0%, rgba(255, 232, 140, 0.30) 0%, rgba(255, 215, 0, 0.08) 30%, transparent 60%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, transparent 25%);
+        }
+        [data-theme="light"] .testimonial-card::after {
+          background: linear-gradient(160deg,
+            rgba(218, 165, 32, 0.55) 0%,
+            rgba(184, 134, 11, 0.35) 30%,
+            rgba(184, 134, 11, 0.18) 65%,
+            rgba(184, 134, 11, 0.12) 90%,
+            rgba(218, 165, 32, 0.30) 100%);
         }
         [data-theme="light"] .testimonial-card--featured {
           background:
-            linear-gradient(160deg, rgba(255, 250, 235, 0.90) 0%, rgba(250, 240, 220, 0.65) 100%);
-          border-color: rgba(184, 134, 11, 0.45);
+            linear-gradient(160deg,
+              rgba(255, 252, 240, 0.88) 0%,
+              rgba(255, 245, 220, 0.62) 60%,
+              rgba(250, 238, 210, 0.52) 100%);
           box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.75),
-            0 18px 44px rgba(140, 90, 25, 0.14),
-            0 0 30px rgba(218, 165, 32, 0.18);
+            inset 0 1.5px 0 rgba(255, 255, 255, 0.85),
+            inset 0 -1px 0 rgba(140, 90, 25, 0.08),
+            0 22px 50px rgba(140, 90, 25, 0.14),
+            0 0 50px rgba(218, 165, 32, 0.22);
+        }
+        [data-theme="light"] .testimonial-card--featured::after {
+          background: linear-gradient(155deg,
+            rgba(218, 165, 32, 0.85) 0%,
+            rgba(184, 134, 11, 0.55) 25%,
+            rgba(184, 134, 11, 0.30) 60%,
+            rgba(184, 134, 11, 0.20) 85%,
+            rgba(218, 165, 32, 0.45) 100%);
         }
       `}</style>
     </section>
