@@ -923,6 +923,7 @@ export function ImageEditor() {
         {photoSrc && bannerReady && (
           <motion.div
             key="controls"
+            data-controls-block
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

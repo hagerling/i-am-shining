@@ -171,6 +171,28 @@ import testimonials from '../data/testimonials.json';
   /* When a photo is loaded, the hero text turns white for contrast on banner */
   .has-photo .hero {
     background: transparent;
+    /* Stretch so profile circle centre = 50vh = banner centre. */
+    height: max(12rem, calc(50vh - min(45vw, 200px)));
+  }
+  @supports (height: 100svh) {
+    .has-photo .hero {
+      height: max(12rem, calc(50svh - min(45vw, 200px)));
+    }
+  }
+  /* When a photo is loaded, push the controls block below the 100vh
+   * banner so the kaleidoscope + portrait fully own the above-the-fold.
+   * Distance from profile-slot bottom to controls top should equal
+   * (100vh − profile-slot-bottom) = (100vh − 50vh − radius) = 50vh − radius.
+   * 2rem of that distance is already provided by the flex gap-8 between
+   * the slot and the controls, so margin-top covers the remainder. */
+  .has-photo [data-controls-block] {
+    margin-top: max(0px, calc(50vh - min(45vw, 200px) - 2rem));
+    transition: margin-top 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @supports (height: 100svh) {
+    .has-photo [data-controls-block] {
+      margin-top: max(0px, calc(50svh - min(45vw, 200px) - 2rem));
+    }
   }
 
   .has-photo .hero h1 {
@@ -201,19 +223,20 @@ import testimonials from '../data/testimonials.json';
     position: relative;
     z-index: 10;
     width: 100%;
-    /* Fixed height — ensures the hero text AND the profile circle are at
-     * the exact same positions whether a photo is loaded or not. Banner
-     * height in HeaderGenerator is `12rem + min(45vw, 200px)` so its bottom
-     * lands on the circle centre. */
+    /* Default (dropzone state): compact 12rem hero with text near the top
+     * and the dropzone circle just below. When a photo loads, the hero
+     * stretches so the profile circle's centre falls at 50vh — putting
+     * the kaleidoscope + portrait fully above the fold. */
     height: 12rem;
     padding: 1rem 1rem 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     background: radial-gradient(ellipse 80% 60% at 50% 50%, hsla(40, 80%, 30%, 0.25) 0%, transparent 70%);
-    transition: background 0.4s ease;
+    transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                background 0.4s ease;
     /* Hero is just text; let clicks pass through so the banner's corner
      * buttons (refresh / download) aren't blocked. */
     pointer-events: none;

@@ -170,29 +170,44 @@
   .banner-preview {
     opacity: 0;
   }
+  /* Use small viewport height where supported so the banner doesn't snap
+   * around the mobile URL bar; falls back to inline `100vh` otherwise. */
+  @supports (height: 100svh) {
+    .banner-preview { height: 100svh !important; }
+  }
   .has-photo .banner-preview {
     animation: banner-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* Slow rotation on the kaleidoscope img inside the banner-preview.
-   * The img is centred (top/left 50%) and oversized (160vw²), so a full
-   * spin never exposes the corners of the banner box. The translate
-   * inside the keyframe is critical — it preserves the centring while
-   * compositing rotation. Reduced-motion users see no spin. */
+  /* Kaleidoscope motion — three layered copies of the same banner img,
+   * all anchored at top/left 50% and oversized so they never expose the
+   * banner-preview corners. Each rotates at a different rate / direction;
+   * blended together with `screen` and `lighten` they interfere as the
+   * facets pass through each other, giving the wheel real dynamic motion
+   * instead of a single static image being spun. */
   @media (prefers-reduced-motion: no-preference) {
-    @keyframes banner-spin {
-      from { transform: translate(-50%, -50%) rotate(0deg); }
-      to   { transform: translate(-50%, -50%) rotate(360deg); }
+    @keyframes banner-spin-cw {
+      from { transform: translate(-50%, -50%) rotate(0deg)   scale(1); }
+      50%  { transform: translate(-50%, -50%) rotate(180deg) scale(1.04); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
     }
-    .has-photo .banner-img-spin {
-      animation: banner-spin 120s linear infinite;
+    @keyframes banner-spin-ccw {
+      from { transform: translate(-50%, -50%) rotate(0deg)    scale(1.05); }
+      50%  { transform: translate(-50%, -50%) rotate(-180deg) scale(1.0); }
+      to   { transform: translate(-50%, -50%) rotate(-360deg) scale(1.05); }
     }
+    @keyframes banner-spin-haze {
+      from { transform: translate(-50%, -50%) rotate(0deg)    scale(1.08); opacity: 0.30; }
+      50%  { transform: translate(-50%, -50%) rotate(120deg)  scale(1.18); opacity: 0.45; }
+      to   { transform: translate(-50%, -50%) rotate(360deg)  scale(1.08); opacity: 0.30; }
+    }
+    .has-photo .banner-img--base    { animation: banner-spin-cw   90s linear infinite; }
+    .has-photo .banner-img--reflect { animation: banner-spin-ccw  60s linear infinite; }
+    .has-photo .banner-img--haze    { animation: banner-spin-haze 140s ease-in-out infinite; }
   }
-  /* Default (no animation): keep the centring transform so the img sits
-   * in place even if rotation is suppressed. */
-  .banner-img-spin {
-    transform: translate(-50%, -50%);
-  }
+  /* Default (animations disabled or before .has-photo): keep the layers
+   * centred so they don't shift to the top-left of the banner. */
+  .banner-img-spin { transform: translate(-50%, -50%); }
 
   .skip-link {
     position: absolute;

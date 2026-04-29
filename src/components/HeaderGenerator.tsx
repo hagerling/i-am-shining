@@ -299,36 +299,87 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
           // Height is taller than the banner's native 4:1 to make room for the
           // profile picture overlap. The img uses object-fit: cover so the
           // kaleidoscope fills the slot without distortion — excess width crops.
-          height: 'calc(24rem + min(90vw, 400px))',
+          height: '100vh',
           overflow: 'hidden',
           boxShadow: '0 4px 32px rgba(0,0,0,0.45)',
           background: '#0e0902',
           zIndex: 1,
         }}
       >
-        {/* <img> rather than <canvas> so iOS users can long-press → Save to Photos */}
+        {/* Three counter-rotating copies of the kaleidoscope img,
+         * blended together so the radial pattern interferes with itself
+         * and feels like a real kaleidoscope in motion rather than a
+         * static image being spun. The base img is the long-pressable
+         * one (so iOS Save-to-Photos still works). */}
         {imgUrl ? (
-          <img
-            src={imgUrl}
-            alt="Your Shining LinkedIn header — long-press on mobile to save"
-            className="banner-img-spin"
-            style={{
-              /* Oversized centred square so that the rotation never exposes
-               * the corners of the (wider-than-tall) banner-preview box.
-               * 160vw × 160vw is bigger than the diagonal of any 16:9 hero. */
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              width: '160vw',
-              height: '160vw',
-              objectFit: 'cover',
-              display: 'block',
-              WebkitTouchCallout: 'default',
-              userSelect: 'none',
-              willChange: 'transform',
-            }}
-            draggable={false}
-          />
+          <>
+            <img
+              src={imgUrl}
+              alt="Your Shining LinkedIn header — long-press on mobile to save"
+              className="banner-img-spin banner-img--base"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: '160vw',
+                height: '160vw',
+                objectFit: 'cover',
+                display: 'block',
+                WebkitTouchCallout: 'default',
+                userSelect: 'none',
+                willChange: 'transform',
+              }}
+              draggable={false}
+            />
+            {/* Counter-rotating reflective layer — adds the moving facet
+             * interference. mix-blend-mode: screen brightens where the
+             * two coincide, exactly the kaleidoscope effect. */}
+            <img
+              src={imgUrl}
+              alt=""
+              aria-hidden="true"
+              className="banner-img-spin banner-img--reflect"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: '170vw',
+                height: '170vw',
+                objectFit: 'cover',
+                display: 'block',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                mixBlendMode: 'screen',
+                opacity: 0.55,
+                willChange: 'transform',
+              }}
+              draggable={false}
+            />
+            {/* Slower wide diffuse glow layer — blurred + scaled, drifts
+             * gently and adds the dreamy kaleidoscope haze. */}
+            <img
+              src={imgUrl}
+              alt=""
+              aria-hidden="true"
+              className="banner-img-spin banner-img--haze"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: '200vw',
+                height: '200vw',
+                objectFit: 'cover',
+                display: 'block',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                filter: 'blur(28px) saturate(140%)',
+                mixBlendMode: 'lighten',
+                opacity: 0.35,
+                willChange: 'transform',
+              }}
+              draggable={false}
+            />
+          </>
         ) : null}
 
         {/* Soft dark vignette behind the hero text — improves contrast for
@@ -405,7 +456,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
               // Match the original banner height — flipping it then exposes
               // the banner's BOTTOM rows at the reflection's top, so the
               // mirror is seamless at the boundary.
-              height: 'calc(24rem + min(90vw, 400px))',
+              height: '100vh',
               objectFit: 'cover',
               transform: 'scaleY(-1)',
               display: 'block',
