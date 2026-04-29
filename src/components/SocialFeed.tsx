@@ -53,8 +53,24 @@ export function SocialFeed({ testimonials }: Props) {
         pointerEvents: 'none',
         zIndex: 0,
       }} />
-      {/* Section header */}
-      <div style={{ marginBottom: '3.25rem', textAlign: 'center' }}>
+      {/* Section header — flanked by sunset arcs (mockup motif). */}
+      <div style={{
+        marginBottom: '3.25rem',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.85rem',
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          gap: '1.5rem',
+          width: '100%',
+        }}>
+          <span className="sunset-arc" aria-hidden="true"><span></span></span>
+          <div style={{ flex: '1 1 auto', maxWidth: '480px', textAlign: 'center' }}>
         <div style={{
           display: 'inline-block',
           background: 'linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-light))',
@@ -78,17 +94,14 @@ export function SocialFeed({ testimonials }: Props) {
           fontStyle: 'italic',
         }}>
           <span>
-            Words to <em style={{
-              fontStyle: 'italic',
-              background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-magenta))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>live by</em>
+            Words to <em className="glitter-text" style={{ fontStyle: 'italic' }}>live by</em>
           </span>
         </h2>
+          </div>
+          <span className="sunset-arc sunset-arc--right" aria-hidden="true"><span></span></span>
+        </div>
         <p style={{
-          marginTop: '0.6rem',
+          margin: 0,
           color: 'var(--color-text-muted)',
           fontSize: '0.92rem',
           letterSpacing: '0.02em',

@@ -234,8 +234,176 @@
   }
 
   /* ── Retro-glam decorations ─────────────────────────────────────────
-   * Background glitter layer + sunburst behind the profile circle.
-   * Pure CSS — no extra DOM, no images. */
+   * Glitter text, cloud puffs, sunset arcs, sunburst rays + a subtle
+   * background glitter layer. Pure CSS, no images. */
+
+  /* Glitter-textured gold text. Layers a tiny SVG sparkle pattern on top
+   * of a multi-stop gold→champagne gradient and clips both to the text.
+   * Use on .hero h1 em and other italic display accents. */
+  .glitter-text {
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g fill='%23fffde0' opacity='0.85'><circle cx='18' cy='36' r='0.9'/><circle cx='62' cy='14' r='0.7'/><circle cx='118' cy='28' r='1.1'/><circle cx='168' cy='12' r='0.8'/><circle cx='44' cy='80' r='1.2'/><circle cx='98' cy='62' r='0.7'/><circle cx='150' cy='86' r='0.9'/><circle cx='184' cy='74' r='0.8'/><circle cx='12' cy='124' r='0.8'/><circle cx='72' cy='118' r='1.0'/><circle cx='126' cy='140' r='0.7'/><circle cx='176' cy='128' r='0.9'/><circle cx='34' cy='168' r='0.7'/><circle cx='86' cy='178' r='1.1'/><circle cx='140' cy='184' r='0.8'/><circle cx='190' cy='168' r='0.7'/></g><g fill='%23ffd75e' opacity='0.6'><circle cx='30' cy='10' r='0.5'/><circle cx='80' cy='40' r='0.5'/><circle cx='110' cy='90' r='0.6'/><circle cx='160' cy='50' r='0.5'/><circle cx='28' cy='100' r='0.5'/><circle cx='100' cy='160' r='0.5'/><circle cx='180' cy='110' r='0.6'/></g></svg>"),
+      linear-gradient(135deg,
+        #8b6708 0%,
+        #c9991e 18%,
+        #ffd866 38%,
+        #fff5c5 50%,
+        #ffd866 62%,
+        #c9991e 82%,
+        #8b6708 100%);
+    background-size: 180px 180px, 100% 100%;
+    background-blend-mode: screen, normal;
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    filter:
+      drop-shadow(0 1px 0 rgba(0, 0, 0, 0.30))
+      drop-shadow(0 0 18px rgba(255, 215, 0, 0.35))
+      drop-shadow(0 0 36px rgba(255, 200, 80, 0.20));
+  }
+  /* Slow shimmer — pans the gradient across the letters. Disabled by
+   * prefers-reduced-motion. */
+  .glitter-text {
+    animation: glitter-shimmer 9s ease-in-out infinite;
+  }
+  @keyframes glitter-shimmer {
+    0%, 100% { background-position: 0% 0%, 0% 0%; }
+    50%      { background-position: -90px 0%, 100% 0%; }
+  }
+
+  /* Hand-drawn ribbon banner (the "I don't chase the light" element from
+   * the mockup). Trapezoid body with two cut-out triangle tails. */
+  .ribbon {
+    --rib-h: 2.5rem;
+    --rib-tail: 0.9rem;
+    --rib-bg: linear-gradient(180deg, #ffd866 0%, #b8860b 60%, #8b6708 100%);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--rib-h);
+    padding: 0 1.5rem;
+    color: #1a0d02;
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    background: var(--rib-bg);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 8px 18px rgba(0, 0, 0, 0.35),
+      0 0 24px rgba(255, 200, 80, 0.18);
+    clip-path: polygon(
+      0% 0%, calc(100% - 0%) 0%, 100% 50%,
+      calc(100% - 0%) 100%, 0% 100%, 0% 50%
+    );
+  }
+  /* Triangle tails on each end */
+  .ribbon::before,
+  .ribbon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+  .ribbon::before {
+    left: calc(-1 * var(--rib-tail));
+    border-width: calc(var(--rib-h) / 2) var(--rib-tail) calc(var(--rib-h) / 2) 0;
+    border-color: transparent #b8860b transparent transparent;
+    transform: translateY(-50%);
+    filter: drop-shadow(-2px 0 4px rgba(0, 0, 0, 0.35));
+  }
+  .ribbon::after {
+    right: calc(-1 * var(--rib-tail));
+    border-width: calc(var(--rib-h) / 2) 0 calc(var(--rib-h) / 2) var(--rib-tail);
+    border-color: transparent transparent transparent #b8860b;
+    transform: translateY(-50%);
+    filter: drop-shadow(2px 0 4px rgba(0, 0, 0, 0.35));
+  }
+
+  /* Cloud puffs — large soft radial gradients in the corners of the hero
+   * area. Adds the dreamy backdrop from the mockup. */
+  .cloud-puff {
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.55;
+  }
+  .cloud-puff--tl {
+    top: -12vh; left: -10vw;
+    width: 50vw; height: 50vw;
+    max-width: 720px; max-height: 720px;
+    background: radial-gradient(circle,
+      rgba(255, 200, 80, 0.32) 0%,
+      rgba(184, 134, 11, 0.12) 40%,
+      transparent 70%);
+  }
+  .cloud-puff--tr {
+    top: -14vh; right: -10vw;
+    width: 45vw; height: 45vw;
+    max-width: 640px; max-height: 640px;
+    background: radial-gradient(circle,
+      rgba(255, 95, 141, 0.18) 0%,
+      rgba(255, 160, 80, 0.10) 40%,
+      transparent 70%);
+  }
+  [data-theme="light"] .cloud-puff--tl {
+    background: radial-gradient(circle,
+      rgba(255, 215, 100, 0.55) 0%,
+      rgba(255, 175, 80, 0.25) 40%,
+      transparent 70%);
+    opacity: 0.75;
+  }
+  [data-theme="light"] .cloud-puff--tr {
+    background: radial-gradient(circle,
+      rgba(255, 130, 160, 0.32) 0%,
+      rgba(255, 175, 110, 0.18) 40%,
+      transparent 70%);
+    opacity: 0.7;
+  }
+
+  /* Sunset / rainbow arcs — concentric semi-circles in warm gold tones.
+   * Used as decorative bookends around section headings (testimonials). */
+  .sunset-arc {
+    position: relative;
+    width: 110px;
+    height: 55px;
+    overflow: hidden;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+  .sunset-arc::before,
+  .sunset-arc::after,
+  .sunset-arc > span {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 999px 999px 0 0;
+  }
+  .sunset-arc::before {
+    width: 110px; height: 55px;
+    background: linear-gradient(180deg, #ff5f8d 0%, #ff5f8d 100%);
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.10);
+  }
+  .sunset-arc > span {
+    width: 80px; height: 40px;
+    background: linear-gradient(180deg, #ffa050 0%, #ffa050 100%);
+  }
+  .sunset-arc::after {
+    width: 50px; height: 25px;
+    background: linear-gradient(180deg, #ffd866 0%, #ffd866 100%);
+  }
+  .sunset-arc--right { transform: scaleX(-1); }
+
+
 
   /* Scattered glitter — fixed-position layer of tiny radial dots that sits
    * behind everything. Drifts very slowly so it feels alive without
