@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Sparkle } from '@phosphor-icons/react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useGesture } from '@use-gesture/react';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 
 interface Testimonial {
   name: string;
@@ -13,64 +15,115 @@ interface Props {
   testimonials: Testimonial[];
 }
 
-export function SocialFeed({ testimonials }: Props) {
-  const gridRef = useRef<HTMLDivElement>(null);
+const AUTO_ADVANCE_MS = 8000;
+const RESUME_AFTER_MS = 20000;
 
-  // Stagger-reveal each card as it enters the viewport
-  useEffect(() => {
-    const cards = gridRef.current?.querySelectorAll<HTMLElement>('.testimonial-card');
-    if (!cards) return;
-    const obs = new IntersectionObserver(
-      (entries) => entries.forEach(e => {
-        if (e.isIntersecting) {
-          (e.target as HTMLElement).style.opacity = '1';
-          (e.target as HTMLElement).style.transform = 'none';
-          obs.unobserve(e.target);
-        }
-      }),
-      { threshold: 0.1, rootMargin: '0px 0px -30px 0px' }
-    );
-    cards.forEach((card, i) => {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(28px)';
-      card.style.transitionDelay = `${i * 55}ms`;
-      obs.observe(card);
-    });
-    return () => obs.disconnect();
+export function SocialFeed({ testimonials }: Props) {
+  const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [hovering, setHovering] = useState(false);
+  const [recentlyTouched, setRecentlyTouched] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const total = testimonials.length;
+
+  const goTo = useCallback(
+    (next: number, dir: 1 | -1) => {
+      setDirection(dir);
+      setIndex(((next % total) + total) % total);
+    },
+    [total],
+  );
+
+  const next = useCallback(() => goTo(index + 1, 1), [goTo, index]);
+  const prev = useCallback(() => goTo(index - 1, -1), [goTo, index]);
+
+  const markTouched = useCallback(() => {
+    setRecentlyTouched(true);
+    window.setTimeout(() => setRecentlyTouched(false), RESUME_AFTER_MS);
   }, []);
 
+  // Auto-advance — paused on hover/focus, and for RESUME_AFTER_MS after
+  // any manual interaction. Respects prefers-reduced-motion.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || hovering || recentlyTouched) return;
+    const id = window.setTimeout(() => goTo(index + 1, 1), AUTO_ADVANCE_MS);
+    return () => window.clearTimeout(id);
+  }, [index, hovering, recentlyTouched, goTo]);
+
+  // Keyboard navigation — only when carousel section has focus or focus is
+  // inside it. ←/→ cycle.
+  useEffect(() => {
+    const sec = sectionRef.current;
+    if (!sec) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!sec.contains(document.activeElement)) return;
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); prev(); markTouched(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); next(); markTouched(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [next, prev, markTouched]);
+
+  // Swipe — horizontal drag past 60px in either direction triggers nav.
+  useGesture(
+    {
+      onDragEnd: ({ movement: [mx], cancel: _cancel }) => {
+        if (Math.abs(mx) < 60) return;
+        if (mx < 0) next(); else prev();
+        markTouched();
+      },
+    },
+    { target: wrapRef, drag: { axis: 'x', filterTaps: true, pointer: { touch: true } } },
+  );
+
+  const variants = {
+    enter:  (dir: 1 | -1) => ({ opacity: 0, x: dir === 1 ? 24 : -24 }),
+    center:                 ({ opacity: 1, x: 0 }),
+    exit:   (dir: 1 | -1) => ({ opacity: 0, x: dir === 1 ? -24 : 24 }),
+  };
+
+  const t = testimonials[index];
+  const frameSrc = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/shining-frame.png`;
+
   return (
-    <section className="community-section" style={{ width: '100%', maxWidth: '1080px', margin: '0 auto', padding: '5rem 1.5rem 5rem', position: 'relative' }}>
-      {/* Soft golden glow behind the cards — gives backdrop-filter
-          something to sample, so the frosted look reads on dark bg. */}
+    <section
+      ref={sectionRef}
+      className="community-section"
+      style={{
+        width: '100%',
+        maxWidth: '1080px',
+        margin: '0 auto',
+        padding: '5rem 1.5rem 5rem',
+        position: 'relative',
+      }}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      onFocus={() => setHovering(true)}
+      onBlur={() => setHovering(false)}
+      aria-roledescription="carousel"
+      aria-label="Community testimonials"
+    >
+      {/* Soft golden glow behind the carousel. */}
       <div aria-hidden style={{
         position: 'absolute',
         inset: '-10% 5% 10% 5%',
         background:
           'radial-gradient(ellipse 70% 50% at 30% 30%, rgba(218,165,32,0.08) 0%, transparent 60%),' +
-          'radial-gradient(ellipse 60% 40% at 75% 75%, rgba(255,180,80,0.06) 0%, transparent 60%)',
-        filter: 'blur(40px)',
+          'radial-gradient(ellipse 60% 50% at 80% 70%, rgba(255,95,141,0.05) 0%, transparent 60%)',
         pointerEvents: 'none',
         zIndex: 0,
       }} />
-      {/* Section header — flanked by sunset arcs (mockup motif). */}
+
+      {/* Heading + subhead */}
       <div style={{
-        marginBottom: '3.25rem',
+        marginBottom: '3rem',
         textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '0.85rem',
+        position: 'relative',
+        zIndex: 1,
       }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          gap: '1.5rem',
-          width: '100%',
-        }}>
-          <span className="sunset-arc" aria-hidden="true"><span></span></span>
-          <div style={{ flex: '1 1 auto', maxWidth: '480px', textAlign: 'center' }}>
         <div style={{
           display: 'inline-block',
           background: 'linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-light))',
@@ -83,108 +136,133 @@ export function SocialFeed({ testimonials }: Props) {
           textTransform: 'uppercase',
           marginBottom: '0.85rem',
         }}>
+          <span aria-hidden style={{ marginRight: '0.4em' }}>✦</span>
           Community
+          <span aria-hidden style={{ marginLeft: '0.4em' }}>✦</span>
         </div>
-        <h2 className="heading-sparkle" style={{
+        <h2 style={{
           fontFamily: 'DM Serif Display, serif',
-          fontSize: 'clamp(2rem, 4.5vw, 3.25rem)',
+          fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
           color: 'var(--color-text)',
           margin: 0,
-          lineHeight: 1.1,
-          fontStyle: 'italic',
+          lineHeight: 1.05,
+          letterSpacing: '-0.012em',
         }}>
-          <span>
-            Words to <em className="glitter-text" style={{ fontStyle: 'italic' }}>live by</em>
-          </span>
+          Who&apos;s{' '}
+          <em className="glitter-text" style={{ fontStyle: 'italic' }}>#Shining</em>
         </h2>
-          </div>
-          <span className="sunset-arc sunset-arc--right" aria-hidden="true"><span></span></span>
-        </div>
         <p style={{
-          margin: 0,
+          margin: '1rem auto 0',
+          maxWidth: '440px',
           color: 'var(--color-text-muted)',
-          fontSize: '0.92rem',
-          letterSpacing: '0.02em',
+          fontSize: '0.95rem',
+          letterSpacing: '0.01em',
+          lineHeight: 1.55,
         }}>
-          From people choosing to <em style={{ fontStyle: 'italic', color: 'var(--color-magenta)' }}>shine</em>.
+          A few golden voices from the movement. Real people. Real radiance. Real LinkedIn frames.
         </p>
       </div>
 
-      {/* Bento testimonial grid — varied card widths cycle every 6 cards.
-          The first card in each cycle (4-col) reads as the "featured" one
-          with a slightly larger quote face. */}
+      {/* Carousel viewport */}
       <div
-        ref={gridRef}
-        className="testimonial-grid"
+        ref={wrapRef}
+        className="carousel-viewport"
+        style={{
+          position: 'relative',
+          minHeight: '22rem',
+          padding: '0 1rem',
+          touchAction: 'pan-y',
+          userSelect: 'none',
+          zIndex: 1,
+        }}
+        aria-live="polite"
+        aria-atomic="false"
       >
-        {testimonials.map((t, i) => {
-          const featured = i % 6 === 0;
-          return (
-          <figure
-            key={i}
-            className={featured ? 'testimonial-card testimonial-card--featured' : 'testimonial-card'}
-            data-featured={featured ? 'true' : undefined}
+        <AnimatePresence mode="wait" custom={direction} initial={false}>
+          <motion.figure
+            key={index}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              opacity: { duration: 0.35, ease: 'easeOut' },
+              x:       { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+            }}
             itemScope
             itemType="https://schema.org/Review"
             style={{
-              padding: featured ? '2rem 2.25rem' : '1.5rem 1.75rem',
-              minHeight: featured ? '11rem' : '9rem',
+              margin: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: '2rem',
+              maxWidth: '880px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
             }}
+            aria-label={`Testimonial ${index + 1} of ${total}`}
           >
             <meta itemProp="itemReviewed" content="I am Shining" />
             {t.date && <meta itemProp="datePublished" content={t.date} />}
-            {/* Quote mark */}
-            <Sparkle
-              size={30}
-              weight="fill"
-              color="var(--color-gold)"
-              style={{ marginBottom: '0.5rem', opacity: 0.7 }}
-            />
 
-            {/* Quote text — readable italic serif, up from the display face
-                (DM Serif Display) which was cramping at body size. */}
             <blockquote
               itemProp="reviewBody"
               style={{
-                color: 'var(--color-text)',
-                fontSize: '1.08rem',
-                lineHeight: 1.6,
-                margin: '0 0 1.25rem',
-                fontStyle: 'italic',
+                margin: 0,
                 fontFamily: '"Iowan Old Style", "Charter", "Source Serif Pro", Georgia, serif',
-                letterSpacing: '0.005em',
+                fontStyle: 'italic',
+                fontSize: 'clamp(1.4rem, 3.2vw, 2.4rem)',
+                lineHeight: 1.45,
+                color: 'var(--color-text)',
+                position: 'relative',
+                padding: '0 0.5rem',
               }}
             >
-              &ldquo;{t.quote}&rdquo;
+              <span aria-hidden style={{
+                color: 'var(--color-gold)',
+                fontFamily: 'inherit',
+                fontSize: '1.15em',
+                marginRight: '0.18em',
+                verticalAlign: '-0.05em',
+              }}>&ldquo;</span>
+              {t.quote}
+              <span aria-hidden style={{
+                color: 'var(--color-gold)',
+                fontFamily: 'inherit',
+                fontSize: '1.15em',
+                marginLeft: '0.05em',
+                verticalAlign: '-0.05em',
+              }}>&rdquo;</span>
             </blockquote>
 
-            {/* Author */}
             <figcaption
               itemProp="author"
               itemScope
               itemType="https://schema.org/Person"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}
             >
-              {/* Avatar with Shining frame overlay */}
               {t.avatar ? (
-                <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
+                <div style={{ position: 'relative', width: '52px', height: '52px', flexShrink: 0 }}>
                   <img
                     src={t.avatar}
                     alt={`Portrait of ${t.name}, ${t.title}`}
-                    width={44}
-                    height={44}
+                    width={52}
+                    height={52}
                     loading="lazy"
                     decoding="async"
                     style={{
-                      width: '44px',
-                      height: '44px',
+                      width: '52px',
+                      height: '52px',
                       borderRadius: '50%',
                       objectFit: 'cover',
                       display: 'block',
                     }}
                   />
                   <img
-                    src={`${import.meta.env.BASE_URL.replace(/\/+$/, '')}/shining-frame.png`}
+                    src={frameSrc}
                     alt=""
                     aria-hidden="true"
                     loading="lazy"
@@ -200,227 +278,161 @@ export function SocialFeed({ testimonials }: Props) {
                 </div>
               ) : (
                 <div style={{
-                  width: '36px',
-                  height: '36px',
+                  width: '52px',
+                  height: '52px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  fontSize: '0.75rem',
+                  fontSize: '0.85rem',
                   fontWeight: 700,
                   color: '#000',
                 }}>
                   {t.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('')}
                 </div>
               )}
-              <div>
-                <div itemProp="name" style={{ color: 'var(--color-text)', fontWeight: 600, fontSize: '0.85rem' }}>
+              <div style={{ textAlign: 'left' }}>
+                <div itemProp="name" style={{ color: 'var(--color-text)', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>
                   {t.name}
                 </div>
-                <div itemProp="jobTitle" style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
+                <div itemProp="jobTitle" style={{
+                  color: 'var(--color-text-muted)',
+                  fontSize: '0.7rem',
+                  marginTop: '0.2rem',
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                }}>
                   {t.title}
                 </div>
               </div>
             </figcaption>
+          </motion.figure>
+        </AnimatePresence>
+      </div>
+
+      {/* Controls */}
+      <div
+        role="group"
+        aria-label="Testimonial navigation"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1.25rem',
+          marginTop: '2.5rem',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        <button
+          type="button"
+          aria-label="Previous testimonial"
+          onClick={() => { prev(); markTouched(); }}
+          className="carousel-arrow"
+        >
+          <CaretLeft size={18} weight="bold" />
+        </button>
+
+        <div role="tablist" aria-label="Choose testimonial" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          {testimonials.map((_, i) => {
+            const active = i === index;
+            return (
+              <button
+                key={i}
+                role="tab"
+                type="button"
+                aria-selected={active}
+                aria-label={`Show testimonial ${i + 1} of ${total}`}
+                onClick={() => { goTo(i, i > index ? 1 : -1); markTouched(); }}
+                className={`carousel-dot${active ? ' carousel-dot--active' : ''}`}
+              />
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          aria-label="Next testimonial"
+          onClick={() => { next(); markTouched(); }}
+          className="carousel-arrow"
+        >
+          <CaretRight size={18} weight="bold" />
+        </button>
+      </div>
+
+      {/* Hidden full list — keeps the Review microdata for crawlers since
+          only the active card is mounted at a time above. */}
+      <div className="sr-only" aria-hidden="true">
+        {testimonials.map((tm, i) => (
+          <figure
+            key={`seo-${i}`}
+            itemScope
+            itemType="https://schema.org/Review"
+          >
+            <meta itemProp="itemReviewed" content="I am Shining" />
+            {tm.date && <meta itemProp="datePublished" content={tm.date} />}
+            <blockquote itemProp="reviewBody">{tm.quote}</blockquote>
+            <figcaption
+              itemProp="author"
+              itemScope
+              itemType="https://schema.org/Person"
+            >
+              <span itemProp="name">{tm.name}</span>{' '}
+              <span itemProp="jobTitle">{tm.title}</span>
+            </figcaption>
           </figure>
-        );
-        })}
+        ))}
       </div>
 
       <style>{`
-        .community-section { isolation: isolate; }
-        .testimonial-grid {
-          position: relative;
-          z-index: 1;
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 1.5rem;
+        .carousel-arrow {
+          width: 3rem;
+          height: 3rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: transparent;
+          border: 1.5px solid rgba(218, 165, 32, 0.55);
+          color: var(--color-gold-light);
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s, transform 0.15s;
         }
-        /* ── Frosted-glass card ───────────────────────────────────────────
-         * Layered effect:
-         *   1. Translucent dark gradient base (the "glass body")
-         *   2. backdrop-filter blur + saturate (lifts the disco-ball + radial
-         *      behind into the glass for that real-translucency feel)
-         *   3. ::before — soft warm sheen at the top-left (the "shine")
-         *   4. ::after  — luminous gradient border via mask-composite: a
-         *      bright golden highlight on the top-left edge that fades
-         *      to a faint hairline on the bottom-right.
-         *   5. box-shadow stack: specular top inset, gold ambient glow,
-         *      depth shadow, contact shadow. */
-        .testimonial-card {
-          position: relative;
-          isolation: isolate;
-          margin: 0;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          gap: 1.25rem;
-          border-radius: var(--radius-card);
-          background:
-            linear-gradient(168deg,
-              rgba(48, 30, 10, 0.55) 0%,
-              rgba(28, 18, 6, 0.40) 55%,
-              rgba(20, 12, 3, 0.32) 100%);
-          backdrop-filter: blur(30px) saturate(160%);
-          -webkit-backdrop-filter: blur(30px) saturate(160%);
-          /* Border drawn by ::after — keep this transparent so the
-           * gradient ring sits flush with the rounded corners. */
-          border: 1px solid transparent;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 245, 210, 0.09),    /* specular top edge */
-            inset 0 -1px 0 rgba(0, 0, 0, 0.20),         /* shadow under bottom edge */
-            0 1px 2px rgba(0, 0, 0, 0.30),              /* contact shadow */
-            0 14px 40px rgba(0, 0, 0, 0.34),            /* depth shadow */
-            0 0 32px rgba(218, 165, 32, 0.06);          /* warm ambient glow */
-          transition:
-            opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
-            transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+        .carousel-arrow:hover {
+          background: rgba(218, 165, 32, 0.12);
+          border-color: rgba(255, 215, 0, 0.85);
+        }
+        .carousel-arrow:active { transform: scale(0.94); }
+
+        .carousel-dot {
+          width: 0.55rem;
+          height: 0.55rem;
+          border-radius: 999px;
+          background: rgba(184, 134, 11, 0.45);
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          transition: background 0.25s, width 0.25s ease;
+        }
+        .carousel-dot:hover { background: rgba(218, 165, 32, 0.85); }
+        .carousel-dot--active {
+          width: 1.6rem;
+          background: linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-light));
+          box-shadow: 0 0 12px rgba(255, 215, 0, 0.45);
         }
 
-        /* ── Sheen pseudo (::before) — warm light hitting top-left ──── */
-        .testimonial-card::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          background:
-            radial-gradient(ellipse 90% 55% at 0% 0%, rgba(255, 232, 140, 0.16) 0%, rgba(255, 215, 0, 0.04) 30%, transparent 60%),
-            linear-gradient(180deg, rgba(255, 240, 200, 0.05) 0%, transparent 25%);
-          pointer-events: none;
-          z-index: -1;
+        [data-theme="light"] .carousel-arrow {
+          color: var(--color-gold-dim);
+          border-color: rgba(184, 134, 11, 0.55);
         }
-
-        /* ── Luminous gradient border (::after) ────────────────────────
-         * mask-composite trick paints a 1px ring with a brightness
-         * gradient, so the border looks like glass catching light at
-         * the top edge and fading into shadow at the bottom. */
-        .testimonial-card::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          padding: 1px;
-          background: linear-gradient(160deg,
-            rgba(255, 232, 140, 0.55) 0%,
-            rgba(218, 165, 32, 0.30) 25%,
-            rgba(184, 134, 11, 0.18) 55%,
-            rgba(184, 134, 11, 0.10) 80%,
-            rgba(255, 215, 0, 0.18) 100%);
-          -webkit-mask:
-            linear-gradient(#000 0 0) content-box,
-            linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-                  mask-composite: exclude;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        /* ── Featured card — brighter glass, stronger glow ──────────── */
-        .testimonial-card--featured {
-          background:
-            linear-gradient(160deg,
-              rgba(64, 40, 12, 0.62) 0%,
-              rgba(36, 22, 6, 0.45) 55%,
-              rgba(20, 12, 3, 0.38) 100%);
-          box-shadow:
-            inset 0 1.5px 0 rgba(255, 245, 210, 0.14),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-            0 1px 2px rgba(0, 0, 0, 0.32),
-            0 22px 50px rgba(0, 0, 0, 0.40),
-            0 0 60px rgba(218, 165, 32, 0.14);          /* bigger gold halo */
-        }
-        .testimonial-card--featured::before {
-          background:
-            radial-gradient(ellipse 100% 70% at 0% 0%,  rgba(255, 215, 0, 0.22) 0%, rgba(255, 215, 0, 0.06) 30%, transparent 60%),
-            radial-gradient(ellipse 80% 60% at 100% 100%, rgba(255, 180, 80, 0.10) 0%, transparent 60%),
-            linear-gradient(180deg, rgba(255, 240, 200, 0.08) 0%, transparent 28%);
-        }
-        .testimonial-card--featured::after {
-          padding: 1.5px;  /* thicker border for the featured */
-          background: linear-gradient(155deg,
-            rgba(255, 240, 170, 0.85) 0%,
-            rgba(255, 215, 0, 0.55) 18%,
-            rgba(218, 165, 32, 0.28) 50%,
-            rgba(184, 134, 11, 0.18) 80%,
-            rgba(255, 215, 0, 0.32) 100%);
-        }
-
-        /* Bento width cycle: 4, 2, 3, 3, 2, 4 (sums to two rows of 6) */
-        .testimonial-card:nth-child(6n + 1) { grid-column: span 4; }
-        .testimonial-card:nth-child(6n + 2) { grid-column: span 2; }
-        .testimonial-card:nth-child(6n + 3) { grid-column: span 3; }
-        .testimonial-card:nth-child(6n + 4) { grid-column: span 3; }
-        .testimonial-card:nth-child(6n + 5) { grid-column: span 2; }
-        .testimonial-card:nth-child(6n + 6) { grid-column: span 4; }
-
-        /* Featured cards get a slightly larger quote face for visual rhythm. */
-        .testimonial-card--featured blockquote {
-          font-size: 1.25rem !important;
-          line-height: 1.55 !important;
-        }
-
-        @media (max-width: 720px) {
-          .testimonial-grid { grid-template-columns: 1fr !important; gap: 1.25rem; }
-          .testimonial-card,
-          .testimonial-card:nth-child(6n + 1),
-          .testimonial-card:nth-child(6n + 2),
-          .testimonial-card:nth-child(6n + 3),
-          .testimonial-card:nth-child(6n + 4),
-          .testimonial-card:nth-child(6n + 5),
-          .testimonial-card:nth-child(6n + 6) { grid-column: span 1; }
-        }
-
-        /* ── Light theme variant ───────────────────────────────────────
-         * Inverted glass: bright translucent surface, darker gold border
-         * gradient so the edge still glows on the warm cream background. */
-        [data-theme="light"] .testimonial-card {
-          background:
-            linear-gradient(168deg,
-              rgba(255, 250, 235, 0.72) 0%,
-              rgba(252, 244, 225, 0.55) 60%,
-              rgba(248, 238, 216, 0.45) 100%);
-          box-shadow:
-            inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
-            inset 0 -1px 0 rgba(120, 80, 20, 0.06),
-            0 1px 2px rgba(120, 80, 20, 0.04),
-            0 14px 40px rgba(120, 80, 20, 0.10),
-            0 0 32px rgba(218, 165, 32, 0.10);
-        }
-        [data-theme="light"] .testimonial-card::before {
-          background:
-            radial-gradient(ellipse 90% 55% at 0% 0%, rgba(255, 232, 140, 0.30) 0%, rgba(255, 215, 0, 0.08) 30%, transparent 60%),
-            linear-gradient(180deg, rgba(255, 255, 255, 0.30) 0%, transparent 25%);
-        }
-        [data-theme="light"] .testimonial-card::after {
-          background: linear-gradient(160deg,
-            rgba(218, 165, 32, 0.55) 0%,
-            rgba(184, 134, 11, 0.35) 30%,
-            rgba(184, 134, 11, 0.18) 65%,
-            rgba(184, 134, 11, 0.12) 90%,
-            rgba(218, 165, 32, 0.30) 100%);
-        }
-        [data-theme="light"] .testimonial-card--featured {
-          background:
-            linear-gradient(160deg,
-              rgba(255, 252, 240, 0.88) 0%,
-              rgba(255, 245, 220, 0.62) 60%,
-              rgba(250, 238, 210, 0.52) 100%);
-          box-shadow:
-            inset 0 1.5px 0 rgba(255, 255, 255, 0.85),
-            inset 0 -1px 0 rgba(140, 90, 25, 0.08),
-            0 22px 50px rgba(140, 90, 25, 0.14),
-            0 0 50px rgba(218, 165, 32, 0.22);
-        }
-        [data-theme="light"] .testimonial-card--featured::after {
-          background: linear-gradient(155deg,
-            rgba(218, 165, 32, 0.85) 0%,
-            rgba(184, 134, 11, 0.55) 25%,
-            rgba(184, 134, 11, 0.30) 60%,
-            rgba(184, 134, 11, 0.20) 85%,
-            rgba(218, 165, 32, 0.45) 100%);
+        [data-theme="light"] .carousel-arrow:hover {
+          background: rgba(184, 134, 11, 0.10);
         }
       `}</style>
     </section>
