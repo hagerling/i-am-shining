@@ -810,7 +810,9 @@ export function ImageEditor() {
           >
             <div
               ref={wrapperRef}
-              className="profile-canvas-wrapper"
+              className={`profile-canvas-wrapper${
+                photoSrc && bannerReady && !isInteracting ? ' profile-rotating' : ''
+              }`}
               style={{
                 position: 'relative',
                 width: '100%',

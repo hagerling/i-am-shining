@@ -299,7 +299,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
           // Height is taller than the banner's native 4:1 to make room for the
           // profile picture overlap. The img uses object-fit: cover so the
           // kaleidoscope fills the slot without distortion — excess width crops.
-          height: 'calc(12rem + min(45vw, 200px))',
+          height: 'calc(24rem + min(90vw, 400px))',
           overflow: 'hidden',
           boxShadow: '0 4px 32px rgba(0,0,0,0.45)',
           background: '#0e0902',
@@ -397,7 +397,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
               // Match the original banner height — flipping it then exposes
               // the banner's BOTTOM rows at the reflection's top, so the
               // mirror is seamless at the boundary.
-              height: 'calc(12rem + min(45vw, 200px))',
+              height: 'calc(24rem + min(90vw, 400px))',
               objectFit: 'cover',
               transform: 'scaleY(-1)',
               display: 'block',

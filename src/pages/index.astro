@@ -353,6 +353,24 @@ import testimonials from '../data/testimonials.json';
     }
   }
 
+  /* Profile coin rotation — slow spin so the gold #SHINING text revolves
+   * around the photo. Pauses by removing the .profile-rotating class
+   * while the user is interacting (drag/zoom), so gestures stay aligned
+   * with the screen. Reduced-motion users see no rotation. */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes profile-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .profile-canvas-wrapper.profile-rotating {
+      animation: profile-spin 60s linear infinite;
+    }
+  }
+  /* Smooth back to 0° when interaction starts (animation removed). */
+  .profile-canvas-wrapper {
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   .hero-sub {
     color: var(--color-text-muted);
     font-size: 1.1rem;
