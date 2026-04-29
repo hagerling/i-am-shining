@@ -21,7 +21,7 @@
     "test:watch": "vitest",
     "fetch-posts": "node scripts/fetch-posts.mjs",
     "fetch-linkedin": "node scripts/fetch-linkedin.mjs",
-    "deploy": "lftp -e \"mirror -R --delete --exclude .DS_Store dist/ /i-am-shining.com/public_html/; quit\" -u hagerling.se,hagerling80 ftpcluster.loopia.se",
+    "deploy": "lftp -e \"mirror -R --delete --exclude .DS_Store --exclude staging/ dist/ /i-am-shining.com/public_html/; quit\" -u hagerling.se,hagerling80 ftpcluster.loopia.se",
     "build:staging": "STAGING=1 astro build",
     "deploy:staging": "lftp -e \"mirror -R --delete --exclude .DS_Store dist/ /i-am-shining.com/public_html/staging/; quit\" -u hagerling.se,hagerling80 ftpcluster.loopia.se"
   },
