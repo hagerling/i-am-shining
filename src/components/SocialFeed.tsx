@@ -54,7 +54,7 @@ export function SocialFeed({ testimonials }: Props) {
         zIndex: 0,
       }} />
       {/* Section header */}
-      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+      <div style={{ marginBottom: '3.25rem', textAlign: 'center' }}>
         <div style={{
           display: 'inline-block',
           background: 'linear-gradient(90deg, var(--color-gold-dim), var(--color-gold-light))',
@@ -65,26 +65,36 @@ export function SocialFeed({ testimonials }: Props) {
           fontWeight: 600,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
-          marginBottom: '0.75rem',
+          marginBottom: '0.85rem',
         }}>
           Community
         </div>
-        <h2 style={{
+        <h2 className="heading-sparkle" style={{
           fontFamily: 'DM Serif Display, serif',
-          fontSize: 'clamp(1.75rem, 4vw, 2.75rem)',
+          fontSize: 'clamp(2rem, 4.5vw, 3.25rem)',
           color: 'var(--color-text)',
           margin: 0,
           lineHeight: 1.1,
+          fontStyle: 'italic',
         }}>
-          Who&apos;s{' '}
-          <em style={{
-            fontStyle: 'italic',
-            background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>#Shining</em>
+          <span>
+            Words to <em style={{
+              fontStyle: 'italic',
+              background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-magenta))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>live by</em>
+          </span>
         </h2>
+        <p style={{
+          marginTop: '0.6rem',
+          color: 'var(--color-text-muted)',
+          fontSize: '0.92rem',
+          letterSpacing: '0.02em',
+        }}>
+          From people choosing to <em style={{ fontStyle: 'italic', color: 'var(--color-magenta)' }}>shine</em>.
+        </p>
       </div>
 
       {/* Bento testimonial grid — varied card widths cycle every 6 cards.

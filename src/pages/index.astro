@@ -9,6 +9,9 @@ import testimonials from '../data/testimonials.json';
 <Layout>
   <DiscoBall client:only="react" />
 
+  {/* Background glitter — fixed behind everything, drifts slowly. */}
+  <div class="page-glitter" aria-hidden="true"></div>
+
   <main id="main-content" tabindex="-1">
     {/* Banner lives behind everything as an absolute layer — it never
         pushes the hero text or profile circle, so they stay in exactly
@@ -18,6 +21,11 @@ import testimonials from '../data/testimonials.json';
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-inner">
         <h1 id="hero-title">I am <em>#Shining</em></h1>
+        <p class="hero-tagline" aria-hidden="true">
+          <span class="hero-tagline-mark">✦</span>
+          shine bright in your golden season
+          <span class="hero-tagline-mark">✦</span>
+        </p>
       </div>
     </section>
 
@@ -26,6 +34,9 @@ import testimonials from '../data/testimonials.json';
       class="editor-section reveal"
       aria-label="Profile photo editor"
     >
+      {/* Sunburst rays radiate from behind the profile circle while the
+          dropzone is showing. Hidden once a banner takes over. */}
+      <div class="sunburst-rays" aria-hidden="true"></div>
       {/* The HowTo schema deep-links to #step-upload, #step-adjust,
           #step-download — all live inside the editor section. The two
           inner anchor markers below have no visible content; they exist
@@ -46,7 +57,10 @@ import testimonials from '../data/testimonials.json';
     <!-- FAQ -->
     <section class="faq-section reveal" aria-labelledby="faq-heading">
       <div class="faq-label">FAQ</div>
-      <h2 id="faq-heading" class="faq-heading">Frequently Asked Questions</h2>
+      <h2 id="faq-heading" class="faq-heading">
+        <span class="heading-sparkle">Frequently Asked Questions</span>
+      </h2>
+      <p class="faq-subhead">Here are some questions I get asked.</p>
 
       <div class="faq-list">
         <details class="faq-item">
@@ -103,7 +117,8 @@ import testimonials from '../data/testimonials.json';
     <footer class="site-footer reveal" aria-labelledby="footer-tagline">
       <div class="footer-inner">
         <p id="footer-tagline" class="footer-tagline">
-          <span class="footer-mark">#</span>Shining &mdash; keep it golden
+          Keep <em>shining</em>, beautiful soul.
+          <span class="footer-heart" aria-hidden="true">♡</span>
         </p>
         <p class="footer-meta">
           Built privacy-first. Your photo never leaves the browser.
@@ -205,7 +220,34 @@ import testimonials from '../data/testimonials.json';
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
+    gap: 0.65rem;
+  }
+
+  /* Italic display tagline under the hero — mockup-inspired, fades when
+   * a photo loads so it doesn't compete with the banner. */
+  .hero-tagline {
+    margin: 0;
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    transition: opacity 0.4s ease;
+  }
+  .hero-tagline-mark {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light));
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 0.85em;
+  }
+  .has-photo .hero-tagline {
+    opacity: 0;
+    pointer-events: none;
   }
 
   h1 {
@@ -317,14 +359,25 @@ import testimonials from '../data/testimonials.json';
 
   .footer-tagline {
     font-family: 'DM Serif Display', serif;
-    font-size: 1.4rem;
-    font-style: italic;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-style: normal;
     margin: 0;
     color: var(--color-text);
     background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-amber));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: -0.005em;
+  }
+  .footer-tagline em {
+    font-style: italic;
+  }
+  .footer-heart {
+    -webkit-text-fill-color: var(--color-magenta);
+    color: var(--color-magenta);
+    margin-left: 0.25rem;
+    font-style: normal;
+    text-shadow: 0 0 18px rgba(255, 95, 141, 0.45);
   }
 
   .footer-mark {
@@ -402,10 +455,19 @@ import testimonials from '../data/testimonials.json';
 
   .faq-heading {
     font-family: 'DM Serif Display', serif;
-    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-style: italic;
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
     color: var(--color-text);
-    margin: 0 0 2.5rem;
+    margin: 0 0 0.5rem;
     line-height: 1.1;
+  }
+  .faq-section { text-align: center; }
+  .faq-section .faq-list { text-align: left; margin-top: 2rem; }
+  .faq-subhead {
+    color: var(--color-text-muted);
+    font-size: 0.92rem;
+    margin: 0 0 1.75rem;
+    letter-spacing: 0.01em;
   }
 
   .faq-list {
@@ -444,15 +506,16 @@ import testimonials from '../data/testimonials.json';
   .faq-question::after {
     content: '';
     flex-shrink: 0;
-    width: 0.55rem;
-    height: 0.55rem;
-    border-right: 2px solid var(--color-gold);
-    border-bottom: 2px solid var(--color-gold);
+    width: 0.6rem;
+    height: 0.6rem;
+    border-right: 2px solid var(--color-gold-light);
+    border-bottom: 2px solid var(--color-gold-light);
     transform: rotate(45deg);
-    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
+                border-color 0.25s ease;
     margin-bottom: 0.2rem;
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.35));
   }
-
   .faq-item[open] .faq-question::after {
     transform: rotate(-135deg);
     margin-bottom: -0.2rem;
