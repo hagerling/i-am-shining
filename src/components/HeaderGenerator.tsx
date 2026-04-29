@@ -311,13 +311,21 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
           <img
             src={imgUrl}
             alt="Your Shining LinkedIn header — long-press on mobile to save"
+            className="banner-img-spin"
             style={{
-              width: '100%',
-              height: '100%',
+              /* Oversized centred square so that the rotation never exposes
+               * the corners of the (wider-than-tall) banner-preview box.
+               * 160vw × 160vw is bigger than the diagonal of any 16:9 hero. */
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '160vw',
+              height: '160vw',
               objectFit: 'cover',
               display: 'block',
               WebkitTouchCallout: 'default',
               userSelect: 'none',
+              willChange: 'transform',
             }}
             draggable={false}
           />
