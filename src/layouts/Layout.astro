@@ -14,7 +14,14 @@ const {
   canonical,
 } = Astro.props;
 
+// Staging builds live at /staging — keep absolute URLs (canonical, og:image,
+// JSON-LD) pointing at the prod site so search engines and unfurlers don't
+// index the staging copy as a duplicate, but make sure preloaded assets
+// resolve under the actual base path of the running build.
 const siteUrl = 'https://i-am-shining.com';
+const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '/');
+const isStaging = base === '/staging/';
+const asset = (path) => `${base}${path.replace(/^\/+/, '')}`;
 const ogImage = `${siteUrl}/og-image.png`;
 const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
 ---
@@ -28,9 +35,9 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
     <link rel="canonical" href={canonicalUrl} />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
-    <link rel="mask-icon" href="/favicon.svg" color="#daa520" />
+    <link rel="icon" type="image/svg+xml" href={asset('favicon.svg')} />
+    <link rel="apple-touch-icon" href={asset('favicon.svg')} />
+    <link rel="mask-icon" href={asset('favicon.svg')} color="#daa520" />
 
     <!-- iOS / Android web-app behavior -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -39,7 +46,7 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <!-- Preload above-the-fold assets for faster first paint -->
-    <link rel="preload" as="image" href="/shining-frame.png" fetchpriority="high" />
+    <link rel="preload" as="image" href={asset('shining-frame.png')} fetchpriority="high" />
 
     <!-- Theme color (browser chrome) -->
     <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#0c0700" />
@@ -71,6 +78,8 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
     />
 
     <title>{title}</title>
+
+    {isStaging && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Robots / LLM crawling hints -->
     <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -219,6 +228,12 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
+    {isStaging && (
+      <div
+        aria-label="Staging environment"
+        style="position:fixed;top:.6rem;right:.6rem;z-index:9999;background:#cc3344;color:#fff;font-family:DM Sans,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:.3rem .6rem;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.4);pointer-events:none"
+      >Staging</div>
+    )}
     <slot />
     <ThemeToggle client:load />
   </body>
