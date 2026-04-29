@@ -174,6 +174,26 @@
     animation: banner-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  /* Slow rotation on the kaleidoscope img inside the banner-preview.
+   * The img is centred (top/left 50%) and oversized (160vw²), so a full
+   * spin never exposes the corners of the banner box. The translate
+   * inside the keyframe is critical — it preserves the centring while
+   * compositing rotation. Reduced-motion users see no spin. */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes banner-spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    .has-photo .banner-img-spin {
+      animation: banner-spin 120s linear infinite;
+    }
+  }
+  /* Default (no animation): keep the centring transform so the img sits
+   * in place even if rotation is suppressed. */
+  .banner-img-spin {
+    transform: translate(-50%, -50%);
+  }
+
   .skip-link {
     position: absolute;
     left: -9999px;
