@@ -13,6 +13,10 @@ import testimonials from '../data/testimonials.json';
   <div class="page-glitter" aria-hidden="true"></div>
 
   <main id="main-content" tabindex="-1">
+    {/* Cloud puffs — soft warm/pink glows in the upper corners of the page. */}
+    <div class="cloud-puff cloud-puff--tl" aria-hidden="true"></div>
+    <div class="cloud-puff cloud-puff--tr" aria-hidden="true"></div>
+
     {/* Banner lives behind everything as an absolute layer — it never
         pushes the hero text or profile circle, so they stay in exactly
         the same position whether a photo is loaded or not. */}
@@ -20,12 +24,13 @@ import testimonials from '../data/testimonials.json';
 
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-inner">
-        <h1 id="hero-title">I am <em>#Shining</em></h1>
-        <p class="hero-tagline" aria-hidden="true">
-          <span class="hero-tagline-mark">✦</span>
+        <h1 id="hero-title">
+          <span class="hero-i">I am</span>
+          <em class="glitter-text">#Shining</em>
+        </h1>
+        <span class="ribbon hero-ribbon" aria-hidden="true">
           shine bright in your golden season
-          <span class="hero-tagline-mark">✦</span>
-        </p>
+        </span>
       </div>
     </section>
 
@@ -196,12 +201,12 @@ import testimonials from '../data/testimonials.json';
     position: relative;
     z-index: 10;
     width: 100%;
-    /* Fixed compact height — ensures the hero text AND the profile circle
-     * are at the exact same positions whether a photo is loaded or not.
-     * The banner (when present) overrides its own height to end at
-     * (hero-height + profile-half), matching the circle's centre. */
-    height: 8rem;
-    padding: 0 1rem;
+    /* Fixed height — ensures the hero text AND the profile circle are at
+     * the exact same positions whether a photo is loaded or not. Banner
+     * height in HeaderGenerator is `12rem + min(45vw, 200px)` so its bottom
+     * lands on the circle centre. */
+    height: 12rem;
+    padding: 1rem 1rem 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -252,10 +257,51 @@ import testimonials from '../data/testimonials.json';
 
   h1 {
     font-family: 'DM Serif Display', serif;
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
-    line-height: 1.08;
+    /* Bumped: more theatrical, mockup-scale display type. */
+    font-size: clamp(3.25rem, 8.5vw, 6.5rem);
+    line-height: 1.0;
     color: var(--color-text);
     margin: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.32em;
+    letter-spacing: -0.012em;
+  }
+  .hero-i {
+    font-style: normal;
+    color: var(--color-text);
+    /* Subtle inner shadow for depth */
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
+  }
+  .has-photo .hero-i {
+    color: #fff;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+  }
+  /* Italic hero accent now uses .glitter-text utility — overrides the
+   * old gold gradient. Add a subtle bling pulse on top of glitter. */
+  h1 em.glitter-text {
+    font-style: italic;
+  }
+  /* The pre-existing bling animation reads background-position; with the
+   * shimmer keyframe owning that property, disable bling on glitter-text
+   * to avoid jitter. */
+  h1 em.glitter-text.bling {
+    animation: glitter-shimmer 9s ease-in-out infinite, bling-pulse 1.4s ease-out;
+  }
+  @keyframes bling-pulse {
+    0%, 100% { filter:
+      drop-shadow(0 1px 0 rgba(0, 0, 0, 0.30))
+      drop-shadow(0 0 18px rgba(255, 215, 0, 0.35))
+      drop-shadow(0 0 36px rgba(255, 200, 80, 0.20));
+    }
+    40% { filter:
+      drop-shadow(0 1px 0 rgba(0, 0, 0, 0.30))
+      drop-shadow(0 0 30px rgba(255, 235, 130, 0.85))
+      drop-shadow(0 0 60px rgba(255, 215, 0, 0.55));
+    }
+  }
+  .hero-ribbon {
+    margin-top: 0.4rem;
   }
 
   h1 em {
@@ -470,19 +516,61 @@ import testimonials from '../data/testimonials.json';
     letter-spacing: 0.01em;
   }
 
+  /* FAQ list inside a luminous frosted box — mockup motif. */
   .faq-list {
     display: flex;
     flex-direction: column;
     gap: 0;
+    padding: 0.5rem 1.5rem;
+    margin: 0 auto;
+    max-width: 620px;
+    border-radius: 1.5rem;
+    background:
+      linear-gradient(168deg,
+        rgba(48, 30, 10, 0.55) 0%,
+        rgba(28, 18, 6, 0.40) 60%,
+        rgba(20, 12, 3, 0.35) 100%);
+    border: 1px solid transparent;
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 245, 210, 0.10),
+      0 1px 2px rgba(0, 0, 0, 0.30),
+      0 14px 40px rgba(0, 0, 0, 0.34),
+      0 0 60px rgba(218, 165, 32, 0.10);
+    position: relative;
+  }
+  /* Gradient ring around the FAQ box, same trick as the testimonial cards. */
+  .faq-list::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(160deg,
+      rgba(255, 232, 140, 0.55) 0%,
+      rgba(218, 165, 32, 0.30) 25%,
+      rgba(184, 134, 11, 0.18) 55%,
+      rgba(184, 134, 11, 0.10) 80%,
+      rgba(255, 215, 0, 0.18) 100%);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+  [data-theme="light"] .faq-list {
+    background:
+      linear-gradient(168deg,
+        rgba(255, 250, 235, 0.78) 0%,
+        rgba(252, 244, 225, 0.62) 100%);
   }
 
   .faq-item {
-    border-bottom: 1px solid rgba(184,134,11,0.18);
+    border-bottom: 1px solid rgba(184,134,11,0.16);
   }
-
-  .faq-item:first-child {
-    border-top: 1px solid rgba(184,134,11,0.18);
-  }
+  .faq-item:last-child { border-bottom: none; }
 
   .faq-question {
     list-style: none;
