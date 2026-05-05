@@ -98,6 +98,7 @@ export function SocialFeed({ testimonials }: Props) {
         margin: '0 auto',
         padding: '5rem 1.5rem 5rem',
         position: 'relative',
+        overflow: 'visible',
       }}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
@@ -109,7 +110,7 @@ export function SocialFeed({ testimonials }: Props) {
       {/* Soft golden glow behind the carousel. */}
       <div aria-hidden style={{
         position: 'absolute',
-        inset: '-10% 5% 10% 5%',
+        inset: '-10% -10% 10% -10%',
         background:
           'radial-gradient(ellipse 70% 50% at 30% 30%, rgba(218,165,32,0.08) 0%, transparent 60%),' +
           'radial-gradient(ellipse 60% 50% at 80% 70%, rgba(255,95,141,0.05) 0%, transparent 60%)',
