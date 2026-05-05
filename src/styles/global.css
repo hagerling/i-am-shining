@@ -156,9 +156,9 @@
     transform: scale(1.12);
   }
 
-  /* Banner image — fades in together with the profile picture once the
-   * canvas is rendered, so the whole header arrives as one piece instead
-   * of staggering top-to-bottom. */
+  /* Banner image — fades in simultaneously with the profile picture.
+   * Both are gated on profileReady + bannerReady so all calculations
+   * finish before anything appears. */
   @keyframes banner-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -167,7 +167,7 @@
     opacity: 0;
   }
   .has-photo .banner-preview {
-    animation: banner-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: banner-fade-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .skip-link {

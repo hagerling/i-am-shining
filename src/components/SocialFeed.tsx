@@ -96,7 +96,7 @@ export function SocialFeed({ testimonials }: Props) {
         width: '100%',
         maxWidth: '1080px',
         margin: '0 auto',
-        padding: '5rem 1.5rem 5rem',
+        padding: '6rem 1.5rem 6rem',
         position: 'relative',
         overflow: 'visible',
       }}
@@ -107,15 +107,18 @@ export function SocialFeed({ testimonials }: Props) {
       aria-roledescription="carousel"
       aria-label="Community testimonials"
     >
-      {/* Soft golden glow behind the carousel. */}
+      {/* Soft golden glow behind the carousel — feathered edges so it
+          fades away smoothly instead of clipping at the container bounds. */}
       <div aria-hidden style={{
         position: 'absolute',
-        inset: '-10% -10% 10% -10%',
+        inset: '-15% -20% 5% -20%',
         background:
-          'radial-gradient(ellipse 70% 50% at 30% 30%, rgba(218,165,32,0.08) 0%, transparent 60%),' +
-          'radial-gradient(ellipse 60% 50% at 80% 70%, rgba(255,95,141,0.05) 0%, transparent 60%)',
+          'radial-gradient(ellipse 60% 45% at 30% 35%, rgba(218,165,32,0.08) 0%, transparent 70%),' +
+          'radial-gradient(ellipse 50% 45% at 75% 65%, rgba(255,95,141,0.05) 0%, transparent 70%)',
         pointerEvents: 'none',
         zIndex: 0,
+        maskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 75%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 75%)',
       }} />
 
       {/* Heading + subhead */}
@@ -143,7 +146,7 @@ export function SocialFeed({ testimonials }: Props) {
         </div>
         <h2 style={{
           fontFamily: 'DM Serif Display, serif',
-          fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+          fontSize: 'clamp(2rem, 4.5vw, 3.2rem)',
           color: 'var(--color-text)',
           margin: 0,
           lineHeight: 1.05,

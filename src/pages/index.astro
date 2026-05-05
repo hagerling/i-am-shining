@@ -41,11 +41,8 @@ import testimonials from '../data/testimonials.json';
       <SocialFeed testimonials={testimonials} client:load />
     </div>
 
-    <div class="divider reveal"></div>
-
     <!-- FAQ -->
     <section class="faq-section reveal" aria-labelledby="faq-heading">
-      <div class="faq-label">FAQ</div>
       <h2 id="faq-heading" class="faq-heading">Frequently Asked Questions</h2>
 
       <div class="faq-list">
@@ -108,13 +105,6 @@ import testimonials from '../data/testimonials.json';
         <p class="footer-meta">
           Built privacy-first. Your photo never leaves the browser.
         </p>
-        <nav class="footer-nav" aria-label="External links">
-          <a href="https://github.com/hagerling/i-am-shining" rel="noopener noreferrer" target="_blank">Source</a>
-          <span aria-hidden class="footer-sep">·</span>
-          <a href="#faq-heading">FAQ</a>
-          <span aria-hidden class="footer-sep">·</span>
-          <a href="mailto:carl.hagerling@gmail.com">Contact</a>
-        </nav>
         <p class="footer-credit">
           Made by <a href="https://github.com/hagerling" rel="noopener noreferrer" target="_blank">Carl Hagerling</a>
         </p>
@@ -156,7 +146,7 @@ import testimonials from '../data/testimonials.json';
   .has-photo .hero h1 {
     color: #fff;
     text-shadow: 0 2px 20px rgba(0,0,0,0.55);
-    transition: color 0.4s ease, text-shadow 0.4s ease;
+    transition: color 0.5s ease, text-shadow 0.5s ease;
   }
 
   .has-photo .hero h1 em {
@@ -193,7 +183,7 @@ import testimonials from '../data/testimonials.json';
     justify-content: center;
     text-align: center;
     background: radial-gradient(ellipse 80% 60% at 50% 50%, hsla(40, 80%, 30%, 0.25) 0%, transparent 70%);
-    transition: background 0.4s ease;
+    transition: background 0s;
     /* Hero is just text; let clicks pass through so the banner's corner
      * buttons (refresh / download) aren't blocked. */
     pointer-events: none;
@@ -283,7 +273,7 @@ import testimonials from '../data/testimonials.json';
     max-width: 700px;
     /* No top padding — the profile circle must start at exactly
      * max(25vw, 200px) from page top (i.e. immediately after .hero). */
-    padding: 0 1rem 4rem;
+    padding: 0 1rem 6rem;
   }
 
 
@@ -292,7 +282,7 @@ import testimonials from '../data/testimonials.json';
     max-width: 700px;
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--color-gold-dim), transparent);
-    margin: 0 auto;
+    margin: 1rem auto;
   }
 
   .site-footer {
@@ -384,7 +374,7 @@ import testimonials from '../data/testimonials.json';
   .faq-section {
     width: 100%;
     max-width: 700px;
-    padding: 0 1rem 5rem;
+    padding: 3rem 1rem 5rem;
   }
 
   .faq-label {

@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGesture } from '@use-gesture/react';
-import { Sparkle, DownloadSimple } from '@phosphor-icons/react';
+import { Sparkle, DownloadSimple, Camera, ArrowCounterClockwise, CaretDown, ArrowsClockwise, Info, X } from '@phosphor-icons/react';
 import { HeaderGenerator } from './HeaderGenerator';
 import { saveCanvasImages, isIOS } from '../lib/download';
 import {
@@ -62,11 +62,25 @@ export function ImageEditor() {
   const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(0.5);
   const intensityRef = useRef(0.5);
+  // Visual slider value — tracks drag position without triggering header
+  // re-render on every tick. Committed to `intensity` on pointer-up.
+  const [sliderValue, setSliderValue] = useState(50);
+  // Info modal toggle
+  const [infoOpen, setInfoOpen] = useState(false);
+  // Spin animation for the randomize button
+  const [spinning, setSpinning] = useState(false);
+  // Glow pulse on the profile circle after any action completes
+  const [glowPulse, setGlowPulse] = useState(false);
+  const triggerGlowPulse = useCallback(() => {
+    setGlowPulse(true);
+    window.setTimeout(() => setGlowPulse(false), 600);
+  }, []);
   const [dragging, setDragging] = useState(false);     // upload-zone drag state
   const [dragOver, setDragOver] = useState(false);     // canvas drag-over state
   const [hoveringDrop, setHoveringDrop] = useState(false); // upload-zone hover state
   // Ref for the canvas wrapper — useGesture attaches listeners to this node
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const bannerRegenerateRef = useRef<(() => void) | null>(null);
   const [onIOS, setOnIOS] = useState(false);
   useEffect(() => { setOnIOS(isIOS()); }, []);
 
@@ -78,22 +92,25 @@ export function ImageEditor() {
     setBannerPortalTarget(document.getElementById('banner-slot'));
   }, []);
 
-  // Gate visual transition on BOTH having a photo AND the banner being
-  // rendered — so the banner and profile picture fade in together, no
-  // staggering. The `has-photo` class drives every CSS transition (hero
-  // collapse, banner slot grow, profile-pic pull-up) from this single flag.
+  // Two-stage reveal: the profile picture fades in first (once face detection
+  // + canvas render complete), then the banner follows slightly after.
+  // `has-photo` class drives CSS transitions (hero collapse, banner slot grow).
+  const [profileReady, setProfileReady] = useState(false);
   const [bannerReady, setBannerReady] = useState(false);
   useEffect(() => {
-    // New photo → reset readiness; HeaderGenerator will set it back to true
-    // when its blob URL is ready.
+    // New photo → reset both gates.
+    setProfileReady(false);
     setBannerReady(false);
   }, [photoSrc]);
+  // `has-photo` drives hero collapse + banner slot. Only add it when BOTH
+  // the profile canvas and the banner blob are fully rendered — this
+  // prevents the banner slot from expanding before content is ready.
   useEffect(() => {
     const root = document.documentElement;
-    if (photoSrc && bannerReady) root.classList.add('has-photo');
+    if (photoSrc && profileReady && bannerReady) root.classList.add('has-photo');
     else root.classList.remove('has-photo');
     return () => root.classList.remove('has-photo');
-  }, [photoSrc, bannerReady]);
+  }, [photoSrc, profileReady, bannerReady]);
 
   // File-upload error feedback
   const MAX_FILE_MB = 25;
@@ -367,20 +384,17 @@ export function ImageEditor() {
     setBannerSampling(null);
     const MAX_SIDE = 2400;
 
-    // Kick off face landmark detection in the background. The sparkle layer
-    // will avoid eyes and mouth once detection completes. Graceful fallback
-    // if MediaPipe fails to load / finds no face — we just render without
-    // exclusion zones.
-    const kickOffFaceDetection = (targetImg: HTMLImageElement) => {
-      import('../lib/faceDetection')
-        .then(({ detectFaceZones }) => detectFaceZones(targetImg))
-        .then((zones) => {
-          if (!zones) return;
-          // Ignore stale results if the user has already swapped photos
-          if (photoImgRef.current !== targetImg) return;
+    // Helper: once the final image is ready, run face detection FIRST,
+    // apply auto-framing, and only THEN show the image. This avoids the
+    // visible jump that occurred when the image rendered at default
+    // position and then snapped into the face-framed crop.
+    const prepareAndShow = async (finalImg: HTMLImageElement) => {
+      photoImgRef.current = finalImg;
+      try {
+        const { detectFaceZones } = await import('../lib/faceDetection');
+        const zones = await detectFaceZones(finalImg);
+        if (zones && photoImgRef.current === finalImg) {
           faceZonesRef.current = zones;
-          // Centroid of both eyes + mouth, in normalised photo coords.
-          // Used by HeaderGenerator to anchor the kaleidoscope on the face.
           const centre = (k: 'leftEye' | 'rightEye' | 'mouth', axis: 'x' | 'y') =>
             axis === 'x'
               ? zones[k].x + zones[k].w / 2
@@ -391,43 +405,37 @@ export function ImageEditor() {
             (centre('leftEye', 'y') + centre('rightEye', 'y') + centre('mouth', 'y')) / 3;
           setFaceCenter({ x: fcx, y: fcy });
 
-          // ── Auto-frame the head ────────────────────────────────────────
-          // Only when the user hasn't manually adjusted yet — otherwise
-          // we'd snap their crop away while they're working.
+          // Auto-frame only if user hasn't manually adjusted
           const t0 = transformRef.current;
           const userTouched = !(t0.x === 0 && t0.y === 0 && t0.scale === 1);
-          if (!userTouched && targetImg.naturalWidth && targetImg.naturalHeight) {
-            // Face vertical extent. Eyes-to-mouth is ~50% of full face height
-            // (forehead/hair ~25% above, chin ~25% below), so multiply ×2.
+          if (!userTouched && finalImg.naturalWidth && finalImg.naturalHeight) {
             const eyeTop = Math.min(zones.leftEye.y, zones.rightEye.y);
             const mouthBottom = zones.mouth.y + zones.mouth.h;
             const eyesToMouth = mouthBottom - eyeTop;
             if (eyesToMouth > 0) {
-              const TARGET_FACE_FRAC = 0.62; // face fills ~62% of canvas height
+              const TARGET_FACE_FRAC = 0.62;
               const faceHeightNorm = eyesToMouth * 2.0;
               const baseScale = Math.max(
-                CANVAS_SIZE / targetImg.naturalWidth,
-                CANVAS_SIZE / targetImg.naturalHeight,
+                CANVAS_SIZE / finalImg.naturalWidth,
+                CANVAS_SIZE / finalImg.naturalHeight,
               );
-              const faceHeightAt1 = faceHeightNorm * targetImg.naturalHeight * baseScale;
+              const faceHeightAt1 = faceHeightNorm * finalImg.naturalHeight * baseScale;
               let targetScale = (TARGET_FACE_FRAC * CANVAS_SIZE) / faceHeightAt1;
-              // Don't zoom out below cover-fit (no empty edges) and don't
-              // zoom in past 4× (avoids cropping into a blurry mess).
               targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE * 0.8, targetScale));
-
               const finalScale = baseScale * targetScale;
-              const sw = targetImg.naturalWidth  * finalScale;
-              const sh = targetImg.naturalHeight * finalScale;
+              const sw = finalImg.naturalWidth  * finalScale;
+              const sh = finalImg.naturalHeight * finalScale;
               const tx = sw * (0.5 - fcx);
               const ty = sh * (0.5 - fcy);
-
               transformRef.current = clamp({ x: tx, y: ty, scale: targetScale });
             }
           }
-
-          render();
-        })
-        .catch(() => { /* already logged inside faceDetection */ });
+        }
+      } catch { /* detection failed — render at default position */ }
+      render();
+      // Profile canvas is now fully rendered with correct positioning —
+      // signal that it's ready to fade in.
+      setProfileReady(true);
     };
 
     const img = new Image();
@@ -442,18 +450,12 @@ export function ImageEditor() {
         if (tctx) {
           tctx.drawImage(img, 0, 0, tmp.width, tmp.height);
           const small = new Image();
-          small.onload = () => {
-            photoImgRef.current = small;
-            render();
-            kickOffFaceDetection(small);
-          };
+          small.onload = () => prepareAndShow(small);
           small.src = tmp.toDataURL('image/jpeg', 0.92);
           return;
         }
       }
-      photoImgRef.current = img;
-      render();
-      kickOffFaceDetection(img);
+      prepareAndShow(img);
     };
     img.onerror = () => setFileError('That image could not be decoded. Try another.');
     img.src = photoSrc;
@@ -719,7 +721,7 @@ export function ImageEditor() {
       {/* Fixed-size slot — dropzone and canvas always occupy this exact space */}
       <div style={{ width: 'min(75vw, 380px)', height: 'min(75vw, 380px)', position: 'relative', flexShrink: 0 }}>
       <AnimatePresence mode="wait" initial={false}>
-        {!(photoSrc && bannerReady) && (
+        {!(photoSrc && profileReady && bannerReady) && (
           <motion.div
             key="dropzone"
             initial={{ opacity: 0 }}
@@ -799,13 +801,13 @@ export function ImageEditor() {
         )}
 
         {/* Canvas — same fixed slot, position: absolute fills it exactly */}
-        {photoSrc && bannerReady && (
+        {photoSrc && profileReady && bannerReady && (
           <motion.div
             key="editor"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
             style={{ position: 'absolute', inset: 0 }}
           >
             <div
@@ -840,9 +842,11 @@ export function ImageEditor() {
                   cursor: dragOver ? 'copy' : isInteracting ? 'grabbing' : 'grab',
                   boxShadow: dragOver
                     ? '0 0 60px hsla(40, 90%, 65%, 0.7), 0 0 120px hsla(40, 80%, 50%, 0.4)'
+                    : glowPulse
+                    ? '0 0 80px hsla(40, 95%, 60%, 0.6), 0 0 140px hsla(40, 85%, 50%, 0.35), 0 0 200px hsla(40, 80%, 45%, 0.15)'
                     : '0 0 60px hsla(40, 90%, 55%, 0.35), 0 0 120px hsla(40, 80%, 40%, 0.2)',
                   touchAction: 'none',
-                  transition: 'box-shadow 0.2s',
+                  transition: 'box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
                   display: 'block',
                 }}
               />
@@ -918,7 +922,7 @@ export function ImageEditor() {
 
       {/* Hint + controls — appear below the fixed circle */}
       <AnimatePresence>
-        {photoSrc && bannerReady && (
+        {photoSrc && profileReady && bannerReady && (
           <motion.div
             key="controls"
             initial={{ opacity: 0 }}
@@ -927,58 +931,97 @@ export function ImageEditor() {
             transition={{ duration: 0.35, delay: 0.2 }}
             className="flex flex-col items-center gap-5 w-full"
           >
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
-              Drag or scroll to pan · Pinch or ⌘/Ctrl + scroll to zoom · Drop a new photo to replace
-            </p>
             <div
               style={{
-                background: 'transparent',
                 padding: '0.5rem 0',
                 width: '100%',
               }}
-              className="flex flex-col gap-5"
+              className="flex flex-col gap-4"
             >
-              {/* Intensity slider */}
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                  <label htmlFor="intensity-slider" style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
-                    Shine Intensity
-                  </label>
-                  <span style={{ color: 'var(--color-gold)', fontSize: '0.875rem' }}>
-                    {Math.round(intensity * 100)}%
-                  </span>
-                </div>
+              {/* ── Floating glass toolbar ─────────────────────────────────── */}
+              <div
+                style={{
+                  background: 'rgba(26,15,2,0.85)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(218,165,32,0.25)',
+                  borderRadius: '1.25rem',
+                  padding: '0.875rem 1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.875rem',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,215,0,0.08)',
+                }}
+              >
+                {/* Info button */}
+                <button
+                  type="button"
+                  aria-label="Controls help"
+                  onClick={() => setInfoOpen(v => !v)}
+                  style={{
+                    display: 'flex',
+                    flexShrink: 0,
+                    color: infoOpen ? 'var(--color-gold-light)' : 'var(--color-text-muted)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    transition: 'color 0.15s',
+                  }}
+                >
+                  <Info size={18} weight="bold" />
+                </button>
+
+                {/* Intensity slider */}
                 <input
                   id="intensity-slider"
                   type="range"
                   min={0}
                   max={100}
                   step={1}
-                  value={Math.round(intensity * 100)}
+                  value={sliderValue}
                   onChange={(e) => {
-                    const v = Number(e.target.value) / 100;
+                    // Move the slider thumb + update the profile canvas in
+                    // real time, but defer the expensive header re-render
+                    // to pointer-up / touch-end.
+                    const raw = Number(e.target.value);
+                    setSliderValue(raw);
+                    intensityRef.current = raw / 100;
+                    render();
+                  }}
+                  onPointerUp={(e) => {
+                    const v = Number((e.target as HTMLInputElement).value) / 100;
                     setIntensity(v);
-                    intensityRef.current = v;
+                    triggerGlowPulse();
+                  }}
+                  onTouchEnd={(e) => {
+                    const v = Number((e.target as HTMLInputElement).value) / 100;
+                    setIntensity(v);
+                    triggerGlowPulse();
                   }}
                   className="shine-slider"
                   aria-label="Shine intensity"
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-valuenow={Math.round(intensity * 100)}
+                  aria-valuenow={sliderValue}
                   style={{
                     accentColor: 'var(--color-gold)',
                     width: '100%',
+                    flex: 1,
                     touchAction: 'pan-y',
                   }}
                 />
-              </div>
 
-              {/* Frame style picker — three colour variants */}
-              <div className="flex flex-col gap-2">
-                <span style={{ color: 'var(--color-text)', fontSize: '0.875rem', fontWeight: 500 }}>
-                  Frame style
-                </span>
-                <div role="radiogroup" aria-label="Frame style" style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* Divider */}
+                <div aria-hidden style={{
+                  width: '1px',
+                  height: '1.75rem',
+                  background: 'rgba(218,165,32,0.2)',
+                  flexShrink: 0,
+                }} />
+
+                {/* Frame style dots */}
+                <div role="radiogroup" aria-label="Frame style" style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                   {(Object.keys(FRAME_STYLES) as FrameStyle[]).map((key) => {
                     const s = FRAME_STYLES[key];
                     const active = key === frameStyle;
@@ -988,184 +1031,317 @@ export function ImageEditor() {
                         type="button"
                         role="radio"
                         aria-checked={active}
-                        onClick={() => setFrameStyle(key)}
+                        aria-label={s.label}
+                        onClick={() => { setFrameStyle(key); triggerGlowPulse(); }}
                         style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0.55rem 0.75rem',
-                          background: 'transparent',
-                          border: active ? '1px solid var(--color-gold-light)' : '1px solid rgba(184,134,11,0.3)',
-                          borderRadius: '0.6rem',
-                          color: active ? 'var(--color-gold-light)' : 'var(--color-text-muted)',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
+                          width: '1.75rem',
+                          height: '1.75rem',
+                          borderRadius: '50%',
+                          background: s.swatch,
+                          border: active ? '2px solid var(--color-gold-light)' : '2px solid transparent',
+                          boxShadow: active ? '0 0 10px rgba(255,215,0,0.4)' : 'none',
+                          opacity: active ? 1 : 0.55,
                           cursor: 'pointer',
-                          transition: 'border-color 0.2s, color 0.2s',
+                          padding: 0,
+                          transition: 'opacity 0.15s, box-shadow 0.15s, border-color 0.15s',
+                          flexShrink: 0,
                         }}
-                      >
-                        <span
-                          aria-hidden
-                          style={{
-                            display: 'inline-block',
-                            width: '0.85rem',
-                            height: '0.85rem',
-                            borderRadius: '50%',
-                            background: s.swatch,
-                            boxShadow: active ? '0 0 0 2px rgba(255,215,0,0.35)' : 'none',
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span>{s.label}</span>
-                      </button>
+                      />
                     );
                   })}
                 </div>
+
+                {/* Divider */}
+                <div aria-hidden style={{
+                  width: '1px',
+                  height: '1.75rem',
+                  background: 'rgba(218,165,32,0.2)',
+                  flexShrink: 0,
+                }} />
+
+                {/* Randomize everything — header, glow, frame colour */}
+                <button
+                  type="button"
+                  aria-label="Randomize style"
+                  title="Randomize"
+                  onClick={() => {
+                    // Spin the icon
+                    setSpinning(true);
+                    window.setTimeout(() => setSpinning(false), 500);
+                    // Pick a random frame style
+                    const keys = Object.keys(FRAME_STYLES) as FrameStyle[];
+                    const randomFrame = keys[Math.floor(Math.random() * keys.length)];
+                    setFrameStyle(randomFrame);
+                    // Pick a random intensity (30–100%)
+                    const randomIntensity = 0.3 + Math.random() * 0.7;
+                    setSliderValue(Math.round(randomIntensity * 100));
+                    setIntensity(randomIntensity);
+                    intensityRef.current = randomIntensity;
+
+                    // Randomize crop position — jitter around the face if
+                    // detected, otherwise random offset. Always ensures
+                    // eyes+mouth stay inside the visible circle.
+                    const img = photoImgRef.current;
+                    const zones = faceZonesRef.current;
+                    if (img) {
+                      const r = (min: number, max: number) => min + Math.random() * (max - min);
+                      const baseScale = Math.max(CANVAS_SIZE / img.naturalWidth, CANVAS_SIZE / img.naturalHeight);
+                      if (zones) {
+                        // Compute face bounding box in normalised coords
+                        const eyeTop = Math.min(zones.leftEye.y, zones.rightEye.y);
+                        const mouthBottom = zones.mouth.y + zones.mouth.h;
+                        const eyeLeft = Math.min(zones.leftEye.x, zones.rightEye.x);
+                        const eyeRight = Math.max(zones.leftEye.x + zones.leftEye.w, zones.rightEye.x + zones.rightEye.w);
+                        const faceCx = (eyeLeft + eyeRight) / 2;
+                        const faceCy = (eyeTop + mouthBottom) / 2;
+                        const faceH = (mouthBottom - eyeTop) * 2.0;
+                        // Random scale that keeps the face between 45–75% of canvas
+                        const targetFrac = r(0.45, 0.75);
+                        const faceHPx = faceH * img.naturalHeight * baseScale;
+                        let newScale = (targetFrac * CANVAS_SIZE) / faceHPx;
+                        newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE * 0.8, newScale));
+                        const fs = baseScale * newScale;
+                        const sw = img.naturalWidth * fs;
+                        const sh = img.naturalHeight * fs;
+                        // Jitter the face position within a safe margin
+                        const jitterX = r(-0.08, 0.08);
+                        const jitterY = r(-0.06, 0.06);
+                        const tx = sw * (0.5 - faceCx + jitterX);
+                        const ty = sh * (0.5 - faceCy + jitterY);
+                        transformRef.current = clamp({ x: tx, y: ty, scale: newScale });
+                      } else {
+                        // No face — random pan within safe bounds
+                        const newScale = r(MIN_SCALE, 2.0);
+                        const tx = r(-60, 60);
+                        const ty = r(-60, 60);
+                        transformRef.current = clamp({ x: tx, y: ty, scale: newScale });
+                      }
+                    }
+
+                    // Regenerate the header kaleidoscope
+                    if (bannerRegenerateRef.current) bannerRegenerateRef.current();
+                    render();
+                    triggerGlowPulse();
+                  }}
+                  style={{
+                    width: '1.75rem',
+                    height: '1.75rem',
+                    borderRadius: '50%',
+                    background: 'transparent',
+                    border: '1.5px solid rgba(218,165,32,0.4)',
+                    color: 'var(--color-gold-light)',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'border-color 0.15s, background 0.15s',
+                  }}
+                >
+                  <ArrowsClockwise
+                    size={14}
+                    weight="bold"
+                    style={{
+                      transition: 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
+                      transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)',
+                    }}
+                  />
+                </button>
               </div>
 
-              {/* Primary action — download the profile picture */}
-              <button
-                onClick={handleDownloadProfile}
-                style={{
-                  width: '100%',
-                  background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
-                  border: 'none',
-                  borderRadius: '0.85rem',
-                  color: '#000',
-                  padding: '1rem 1.1rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  letterSpacing: '0.03em',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1,
-                  boxShadow: '0 8px 28px hsla(45, 90%, 55%, 0.25)',
-                }}
-              >
-                <DownloadSimple size={20} weight="bold" />
-                <span>Download profile picture</span>
-              </button>
+              {/* ── Info modal ─────────────────────────────────────────────── */}
+              <AnimatePresence>
+                {infoOpen && (
+                  <motion.div
+                    key="info-panel"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    style={{
+                      background: 'rgba(26,15,2,0.92)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(218,165,32,0.2)',
+                      borderRadius: '1rem',
+                      padding: '1.25rem 1.25rem 1rem',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                      position: 'relative',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-label="Close info"
+                      onClick={() => setInfoOpen(false)}
+                      style={{
+                        position: 'absolute',
+                        top: '0.75rem',
+                        right: '0.75rem',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-text-muted)',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                      }}
+                    >
+                      <X size={14} weight="bold" />
+                    </button>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', lineHeight: 1.65, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      <div><strong style={{ color: 'var(--color-text)' }}>Photo</strong> — Drag or scroll to pan. Pinch or ⌘/Ctrl + scroll to zoom. Drop a new photo to replace.</div>
+                      <div><strong style={{ color: 'var(--color-text)' }}>Shine</strong> — Slide to adjust glow intensity on both your profile picture and header banner.</div>
+                      <div><strong style={{ color: 'var(--color-text)' }}>Frame</strong> — Tap a colour dot to switch between Gold, Rose, and Silver frame styles.</div>
+                      <div><strong style={{ color: 'var(--color-text)' }}>Randomize</strong> — Shuffles everything: kaleidoscope pattern, intensity, frame colour, and crop position.</div>
+                      <div style={{ color: 'rgba(184,134,11,0.6)', fontSize: '0.7rem', marginTop: '0.15rem' }}>Keyboard: R = reset crop · +/- = zoom · Arrow keys = pan</div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Secondary action — header download with a dropdown for
-                  "with text" / "without text". */}
-              <div ref={headerMenuRef} style={{ position: 'relative', width: '100%' }}>
+              {/* ── Download buttons ───────────────────────────────────────── */}
+              <div style={{ display: 'flex', gap: '0.625rem' }}>
+                {/* Profile download */}
                 <button
-                  onClick={() => setHeaderMenuOpen((v) => !v)}
-                  aria-haspopup="menu"
-                  aria-expanded={headerMenuOpen}
+                  onClick={handleDownloadProfile}
                   style={{
-                    width: '100%',
-                    background: 'transparent',
-                    border: '1px solid rgba(184,134,11,0.5)',
-                    borderRadius: '0.85rem',
-                    color: 'var(--color-gold-light)',
-                    padding: '1rem 1.1rem',
-                    fontSize: '0.95rem',
+                    flex: 1,
+                    background: 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light))',
+                    border: 'none',
+                    borderRadius: '0.875rem',
+                    color: '#000',
+                    padding: '0.875rem 1rem',
+                    fontSize: '0.85rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    letterSpacing: '0.03em',
+                    letterSpacing: '0.02em',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.5rem',
                     whiteSpace: 'nowrap',
                     lineHeight: 1,
+                    boxShadow: '0 4px 16px rgba(218,165,32,0.3)',
                   }}
                 >
-                  <DownloadSimple size={20} weight="bold" />
-                  <span>Download header image</span>
-                  <span
-                    aria-hidden
-                    style={{
-                      display: 'inline-block',
-                      width: '0.45rem',
-                      height: '0.45rem',
-                      borderRight: '2px solid currentColor',
-                      borderBottom: '2px solid currentColor',
-                      transform: headerMenuOpen ? 'rotate(-135deg) translate(-2px, -2px)' : 'rotate(45deg)',
-                      transition: 'transform 0.2s',
-                      marginLeft: '0.25rem',
-                    }}
-                  />
+                  <DownloadSimple size={18} weight="bold" />
+                  <span>Profile picture</span>
                 </button>
-                {headerMenuOpen && (
-                  <div
-                    role="menu"
+
+                {/* Header download with dropdown */}
+                <div ref={headerMenuRef} style={{ position: 'relative', flex: 1 }}>
+                  <button
+                    onClick={() => setHeaderMenuOpen((v) => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={headerMenuOpen}
                     style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 0.4rem)',
-                      left: 0,
-                      right: 0,
-                      background: 'var(--color-surface)',
-                      border: '1px solid rgba(184,134,11,0.35)',
-                      borderRadius: '0.75rem',
-                      padding: '0.35rem',
-                      zIndex: 20,
-                      boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
-                      display: 'flex',
-                      flexDirection: 'column',
+                      width: '100%',
+                      background: 'rgba(26,15,2,0.6)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(218,165,32,0.35)',
+                      borderRadius: '0.875rem',
+                      color: 'var(--color-gold)',
+                      padding: '0.875rem 1rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      letterSpacing: '0.02em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1,
                     }}
                   >
-                    <button
-                      role="menuitem"
-                      onClick={() => handleDownloadHeader(false)}
+                    <DownloadSimple size={18} weight="bold" />
+                    <span>Header image</span>
+                    <CaretDown
+                      size={14}
+                      weight="bold"
                       style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--color-text)',
-                        padding: '0.65rem 0.85rem',
-                        fontSize: '0.85rem',
-                        textAlign: 'left',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
+                        marginLeft: '0.15rem',
+                        transition: 'transform 0.2s',
+                        transform: headerMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                       }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(218,165,32,0.12)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-                    >
-                      Without text
-                    </button>
-                    <button
-                      role="menuitem"
-                      onClick={() => handleDownloadHeader(true)}
+                    />
+                  </button>
+                  {headerMenuOpen && (
+                    <div
+                      role="menu"
                       style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--color-text)',
-                        padding: '0.65rem 0.85rem',
-                        fontSize: '0.85rem',
-                        textAlign: 'left',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
+                        position: 'absolute',
+                        top: 'calc(100% + 0.4rem)',
+                        left: 0,
+                        right: 0,
+                        background: 'var(--color-surface)',
+                        border: '1px solid rgba(184,134,11,0.35)',
+                        borderRadius: '0.75rem',
+                        padding: '0.35rem',
+                        zIndex: 20,
+                        boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
+                        display: 'flex',
+                        flexDirection: 'column',
                       }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(218,165,32,0.12)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                     >
-                      With “I am #Shining” text
-                    </button>
-                  </div>
-                )}
+                      <button
+                        role="menuitem"
+                        onClick={() => handleDownloadHeader(false)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--color-text)',
+                          padding: '0.65rem 0.85rem',
+                          fontSize: '0.85rem',
+                          textAlign: 'left',
+                          borderRadius: '0.5rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(218,165,32,0.12)'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                      >
+                        Without text
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={() => handleDownloadHeader(true)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--color-text)',
+                          padding: '0.65rem 0.85rem',
+                          fontSize: '0.85rem',
+                          textAlign: 'left',
+                          borderRadius: '0.5rem',
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(218,165,32,0.12)'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                      >
+                        With {'"'}I am #Shining{'"'} text
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Subtle text links: change photo + reset crop */}
-              <div style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center', margin: '0.25rem 0 0' }}>
+              {/* ── Utility links ──────────────────────────────────────────── */}
+              <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', margin: '0.15rem 0 0' }}>
                 <button
                   onClick={() => setPhotoSrc(null)}
                   style={{
                     background: 'transparent',
                     border: 'none',
                     color: 'var(--color-text-muted)',
-                    fontSize: '0.8rem',
+                    fontSize: '0.78rem',
                     cursor: 'pointer',
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '3px',
-                    padding: '0.25rem 0.25rem',
+                    padding: '0.25rem 0',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
                   }}
                 >
+                  <Camera size={15} weight="bold" />
                   Change photo
                 </button>
                 {!isDefaultCrop && (
@@ -1175,14 +1351,16 @@ export function ImageEditor() {
                       background: 'transparent',
                       border: 'none',
                       color: 'var(--color-text-muted)',
-                      fontSize: '0.8rem',
+                      fontSize: '0.78rem',
                       cursor: 'pointer',
-                      textDecoration: 'underline',
-                      textUnderlineOffset: '3px',
-                      padding: '0.25rem 0.25rem',
+                      padding: '0.25rem 0',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
                     }}
                   >
-                    Reset crop
+                    <ArrowCounterClockwise size={15} weight="bold" />
+                    Reset
                   </button>
                 )}
               </div>
@@ -1213,9 +1391,11 @@ export function ImageEditor() {
           faceCenter={faceCenter}
           sampling={bannerSampling}
           tintFilter={FRAME_STYLES[frameStyle].filter}
+          intensity={intensity}
           onReady={() => setBannerReady(true)}
           onCanvasReady={(c) => { bannerCanvasRef.current = c; }}
           onRendererReady={(fn) => { bannerRendererRef.current = fn; }}
+          onRegenerateReady={(fn) => { bannerRegenerateRef.current = fn; }}
         />,
         bannerPortalTarget,
       )}

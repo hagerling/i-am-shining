@@ -25,6 +25,9 @@ interface Props {
   /** CSS filter applied on top of the rendered banner so the kaleidoscope's
    *  metallic tone matches the chosen frame style (Gold/Rose/Silver). */
   tintFilter?: string;
+  /** Shine intensity (0–1) from the profile controls — scales sparkle density,
+   *  flare boost, and exposure so the banner matches the profile glow level. */
+  intensity?: number;
   /** Fired whenever a freshly rendered banner blob URL is ready. The parent
    *  uses this to gate the moment it reveals the profile picture, so the
    *  banner and profile picture fade in synchronously. */
@@ -38,11 +41,16 @@ interface Props {
   onRendererReady?: (
     renderBanner: (withText: boolean) => Promise<HTMLCanvasElement | null>,
   ) => void;
+  /** Hands the parent the regenerate function so the toolbar can trigger
+   *  a full re-randomization of the kaleidoscope. */
+  onRegenerateReady?: (regenerate: () => void) => void;
 }
 
-export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, onReady, onCanvasReady, onRendererReady }: Props) {
+export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, intensity = 0.5, onReady, onCanvasReady, onRendererReady, onRegenerateReady }: Props) {
   const tintRef = useRef<string | undefined>(tintFilter);
   useEffect(() => { tintRef.current = tintFilter; }, [tintFilter]);
+  const intensityRef = useRef(intensity);
+  useEffect(() => { intensityRef.current = intensity; }, [intensity]);
   // Canvas lives offscreen — we display the rendered result as an <img>
   // (via a blob URL) so iOS users can long-press → "Save to Photos".
   const canvasRef    = useRef<HTMLCanvasElement>(
@@ -57,16 +65,26 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
   const samplingRef    = useRef<Props['sampling']>(null);
   const optionsRef     = useRef<HeaderOptions>(baseOptionsRef.current);
 
-  /** Apply the user's transform on top of baseOptionsRef → optionsRef. */
+  /** Apply the user's transform + intensity on top of baseOptionsRef → optionsRef. */
   const applySampling = () => {
     const base = baseOptionsRef.current;
     const s = samplingRef.current;
+    const i = intensityRef.current;
+    // Scale sparkle/flare properties by intensity (0–1).
+    // At 0 the banner is calm (low density/flare), at 1 it's maxed out.
+    const intensityScale = 0.3 + i * 1.2; // maps 0→0.3, 1→1.5
+    const scaled = {
+      ...base,
+      density:    base.density    * intensityScale,
+      flareBoost: base.flareBoost * intensityScale,
+      exposure:   0.85 + i * 0.45, // maps 0→0.85, 1→1.3
+    };
     if (!s) {
-      optionsRef.current = base;
+      optionsRef.current = scaled;
       return;
     }
     optionsRef.current = {
-      ...base,
+      ...scaled,
       photoOffsetX: s.offsetX,
       photoOffsetY: s.offsetY,
       photoScale:   base.photoScale * s.scale,
@@ -186,11 +204,16 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const regenerate = () => {
+  const regenerate = useCallback(() => {
     baseOptionsRef.current = makeRandomHeaderOptions(faceCenter ?? undefined);
     applySampling();
     generate();
-  };
+  }, [faceCenter, generate]);
+
+  // Expose regenerate to parent
+  useEffect(() => {
+    if (onRegenerateReady) onRegenerateReady(regenerate);
+  }, [regenerate, onRegenerateReady]);
 
   // When face detection results arrive (or change), re-run one generation
   // anchored on the face so the very first banner the user sees features
@@ -220,6 +243,15 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
     generate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tintFilter]);
+
+  // Re-render the banner when shine intensity changes so sparkle density,
+  // flare boost, and exposure match the profile picture's glow level.
+  useEffect(() => {
+    intensityRef.current = intensity;
+    applySampling();
+    if (photoRef.current) generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intensity]);
 
   // Load photo and auto-generate
   useEffect(() => {
@@ -339,27 +371,6 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, on
           }}
         />
 
-        {/* Icon-only action buttons, top-right corner of the banner. */}
-        <div style={{
-          position: 'absolute',
-          top: 'clamp(0.6rem, 1.4vw, 1.25rem)',
-          right: 'clamp(0.6rem, 1.4vw, 1.25rem)',
-          display: 'flex',
-          gap: '0.6rem',
-          zIndex: 3,
-        }}>
-          <button
-            type="button"
-            onClick={regenerate}
-            disabled={generating}
-            className="banner-icon-btn"
-            aria-label="Regenerate banner"
-            data-tooltip="Regenerate"
-            title="Regenerate banner"
-          >
-            <ArrowsClockwise size={18} weight="bold" />
-          </button>
-        </div>
       </div>
 
       {/* Reflection of the banner — appears below the banner, behind the
