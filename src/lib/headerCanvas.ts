@@ -47,7 +47,7 @@ export function makeRandomHeaderOptions(
   faceCenter?: { x: number; y: number },
 ): HeaderOptions {
   const r = (min: number, max: number) => min + Math.random() * (max - min);
-  const slicesChoices = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32];
+  const slicesChoices = [8, 10, 12, 14, 16, 20, 24];
 
   // Normalised sample point for the kaleidoscope centre. Defaults to photo
   // centre; when face centroid is known, jitter gently around it so the
@@ -67,7 +67,7 @@ export function makeRandomHeaderOptions(
     seed:         Math.floor(Math.random() * 1_000_000),
     ballAngle:    r(0, Math.PI * 2),
     slices:       slicesChoices[Math.floor(Math.random() * slicesChoices.length)],
-    photoScale:   r(0.75, 1.7),
+    photoScale:   r(1.2, 2.5),
     photoOffsetX: sampleX,
     photoOffsetY: sampleY,
     density:      r(0.6, 1.75),
@@ -192,37 +192,51 @@ function drawKaleidoscope(
   const imgW = photo.naturalWidth;
   const imgH = photo.naturalHeight;
 
-  // Normalise the photo to a square draw target centred on the wedge apex.
+  // Normalise the photo to a draw target centred on the wedge apex.
   // photoScale lets us zoom into the photo so finer detail fills the kaleidoscope.
-  const drawDim = radius * 2.4 * photoScale;
+  // 3.2× radius ensures every wedge is fully covered with no background gaps.
+  const drawDim = radius * 3.2 * photoScale;
   const aspect  = imgW / imgH;
   const drawW = aspect >= 1 ? drawDim * aspect : drawDim;
   const drawH = aspect >= 1 ? drawDim         : drawDim / aspect;
 
+  // Draw ONE source wedge into an offscreen canvas, then stamp + mirror it.
+  // This guarantees every pair of adjacent slices is a perfect reflection.
+  const offW = Math.ceil(radius * 1.02);
+  const offH = Math.ceil(2 * radius * Math.tan(halfA) * 1.02);
+  const off = document.createElement('canvas');
+  off.width = offW;
+  off.height = offH;
+  const oCtx = off.getContext('2d')!;
+
+  // Clip to a triangle (apex at left edge, fan out to right)
+  oCtx.beginPath();
+  oCtx.moveTo(0, offH / 2);
+  oCtx.lineTo(offW, 0);
+  oCtx.lineTo(offW, offH);
+  oCtx.closePath();
+  oCtx.clip();
+
+  // Draw the photo so the sample point lands at the apex (0, offH/2)
+  oCtx.drawImage(
+    photo,
+    -sampleX * drawW,
+    offH / 2 - sampleY * drawH,
+    drawW, drawH,
+  );
+
   for (let i = 0; i < slices; i++) {
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(rotation + i * sliceAngle);
-    if (i % 2 === 1) ctx.scale(-1, 1);           // mirror every other wedge
+    ctx.rotate(rotation + i * sliceAngle - halfA);
 
-    // Clip to a triangular wedge with slight overlap so seams don't show
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    const rOut = radius * 1.015;
-    ctx.lineTo(Math.cos(-halfA) * rOut, Math.sin(-halfA) * rOut);
-    ctx.arc(0, 0, rOut, -halfA, halfA);
-    ctx.closePath();
-    ctx.clip();
+    // Even slices: draw as-is. Odd slices: flip vertically for mirror.
+    if (i % 2 === 1) {
+      ctx.scale(1, -1);
+    }
 
-    // Draw the photo so the (sampleX, sampleY) normalised point lands exactly
-    // at the wedge apex — i.e. at the kaleidoscope centre. When this is the
-    // face centroid, the user's eyes / nose / mouth appear in every facet.
-    ctx.drawImage(
-      photo,
-      -sampleX * drawW,
-      -sampleY * drawH,
-      drawW, drawH,
-    );
+    // Draw the pre-rendered wedge: apex at (0,0), fanning outward
+    ctx.drawImage(off, 0, -offH / 2);
     ctx.restore();
   }
 }
@@ -258,12 +272,8 @@ export function renderLinkedInHeader(
   // ── Background — soft cream / champagne base ─────────────────────────────
   ctx.clearRect(0, 0, W, H);
 
-  // Pure white with a touch of warmth towards the edges so it doesn't feel flat
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0,    '#ffffff');  // pure white at top
-  bgGrad.addColorStop(0.5,  '#fff8e8');  // cream midway
-  bgGrad.addColorStop(1,    '#fdeccb');  // warm champagne at bottom
-  ctx.fillStyle = bgGrad;
+  // Dark base so any gaps in the kaleidoscope blend into the page background
+  ctx.fillStyle = '#0c0700';
   ctx.fillRect(0, 0, W, H);
 
   // Rose sunrise tint from upper-left — softer on a light background
@@ -277,9 +287,9 @@ export function renderLinkedInHeader(
   // Kaleidoscope centred in the banner and sized to cover it entirely —
   // the jewel now BECOMES the header rather than sitting to one side.
   const ballCX   = Math.round(W * 0.50);
-  const ballCY   = Math.round(H * 0.50);
+  const ballCY   = Math.round(H * 1.00);
   const BALL_R   = Math.round(H * 0.46);                 // visual / frame reference size
-  const KALEIDO_R = Math.round(Math.hypot(W, H) / 2) + 4; // covers every corner
+  const KALEIDO_R = Math.round(Math.hypot(W / 2, H)) + 4; // covers every corner from bottom-center
 
   // Bigger, warmer glow behind the ball
   const warmG = ctx.createRadialGradient(ballCX, ballCY, 0, ballCX, ballCY, W * 0.50);
@@ -385,11 +395,14 @@ export function renderLinkedInHeader(
     // No clip — the kaleidoscope takes up the whole canvas as the hero visual.
     // photoOffsetX/Y are NORMALISED (0–1). When face detection supplies them
     // they point at the face centroid; otherwise a random near-centre sample.
+    // Rotation locked to -π/2 so a wedge boundary points straight up from
+    // the bottom-centre origin. Combined with the odd/even mirroring this
+    // guarantees perfect bilateral (left–right) symmetry every time.
     drawKaleidoscope(
       ctx, photo,
       ballCX, ballCY, KALEIDO_R,
       slices,
-      ballAngle * 0.35,
+      -Math.PI / 2,
       photoScale,
       photoOffsetX,
       photoOffsetY,
@@ -446,7 +459,7 @@ export function renderLinkedInHeader(
     ctx.globalCompositeOperation = 'lighter';
     const rayLen = Math.max(W, H) * 0.7;
     for (let i = 0; i < slices; i++) {
-      const a = ballAngle * 0.35 + (i / slices) * Math.PI * 2;
+      const a = -Math.PI / 2 + (i / slices) * Math.PI * 2;
       const grad = ctx.createLinearGradient(
         ballCX, ballCY,
         ballCX + Math.cos(a) * rayLen,
@@ -750,20 +763,31 @@ export function renderLinkedInHeader(
     const startX  = tx - totalW / 2;
 
     ctx.textAlign = 'left';
-    ctx.shadowColor = 'rgba(0,0,0,0.65)';
-    ctx.shadowBlur  = 28;
+    // No shadow — clean gold text
 
-    ctx.fillStyle = '#fef8ed';
+    // "I am" in gold gradient (matching #SHINING)
+    const iamGrad = ctx.createLinearGradient(
+      startX, tCenter - 40,
+      startX + labelW, tCenter + 40,
+    );
+    iamGrad.addColorStop(0,    '#c9991e');
+    iamGrad.addColorStop(0.3,  '#ffd866');
+    iamGrad.addColorStop(0.5,  '#fff5c5');
+    iamGrad.addColorStop(0.7,  '#ffd866');
+    iamGrad.addColorStop(1,    '#c9991e');
+    ctx.fillStyle = iamGrad;
     ctx.fillText(label, startX, tCenter - 10);
 
+    // "#SHINING" in brighter gold gradient
     const shineGrad = ctx.createLinearGradient(
       startX + labelW, tCenter - 40,
       startX + totalW, tCenter + 40,
     );
-    shineGrad.addColorStop(0,    '#ffdd90');
-    shineGrad.addColorStop(0.4,  '#fff1b8');
-    shineGrad.addColorStop(0.75, '#ffe8a6');
-    shineGrad.addColorStop(1,    '#e9b14a');
+    shineGrad.addColorStop(0,    '#c9991e');
+    shineGrad.addColorStop(0.25, '#ffd866');
+    shineGrad.addColorStop(0.5,  '#fff5c5');
+    shineGrad.addColorStop(0.75, '#ffd866');
+    shineGrad.addColorStop(1,    '#c9991e');
     ctx.fillStyle = shineGrad;
     ctx.fillText(accent, startX + labelW, tCenter - 10);
     ctx.restore();
@@ -773,9 +797,15 @@ export function renderLinkedInHeader(
     ctx.textBaseline = 'middle';
     ctx.font = `500 16px ${sans}`;
     (ctx as unknown as { letterSpacing?: string }).letterSpacing = '0.14em';
-    ctx.shadowColor = 'rgba(0,0,0,0.50)';
-    ctx.shadowBlur  = 10;
-    ctx.fillStyle = 'rgba(255,240,200,0.92)';
+    // No shadow — clean gold URL text
+    const urlGrad = ctx.createLinearGradient(
+      tx - 80, tCenter + 72,
+      tx + 80, tCenter + 72,
+    );
+    urlGrad.addColorStop(0,   '#c9991e');
+    urlGrad.addColorStop(0.5, '#ffd866');
+    urlGrad.addColorStop(1,   '#c9991e');
+    ctx.fillStyle = urlGrad;
     ctx.fillText('i-am-shining.com', tx, tCenter + 72);
     ctx.restore();
 

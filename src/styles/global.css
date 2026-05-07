@@ -156,19 +156,79 @@
     transform: scale(1.12);
   }
 
-  /* Banner image — fades in simultaneously with the profile picture.
-   * Both are gated on profileReady + bannerReady so all calculations
-   * finish before anything appears. */
-  @keyframes banner-fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+  /* Shining button — thin rotating gold outline on hover.
+     Single 1px line outside the element, no inner glow. */
+  .shining-btn {
+    position: relative;
+    overflow: visible;
   }
-  .banner-preview {
+  .shining-btn::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--glow-angle, 0deg),
+      transparent 0%,
+      var(--color-gold-light) 12%,
+      transparent 25%,
+      transparent 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
     opacity: 0;
+    transition: opacity 0.3s ease;
+    animation: btn-glow-spin 3s linear infinite;
+    z-index: 1;
   }
-  .has-photo .banner-preview {
-    animation: banner-fade-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  .shining-btn::after { content: none; }
+  .shining-btn:hover::before {
+    opacity: 1;
   }
+  .shining-btn:active {
+    transform: scale(0.97);
+  }
+
+  @property --glow-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
+  @keyframes btn-glow-spin {
+    to { --glow-angle: 360deg; }
+  }
+
+  /* Breathing glow pulse — shown around the profile circle while the
+   * canvas + banner are rendering after a photo upload. One full breath
+   * takes 1.6 s to match the minimum pulse timer in ImageEditor. */
+  @keyframes profile-glow-breathe {
+    0%, 100% {
+      box-shadow:
+        0 0 30px hsla(40, 90%, 55%, 0.15),
+        0 0 60px hsla(40, 80%, 40%, 0.08);
+    }
+    50% {
+      box-shadow:
+        0 0 60px hsla(40, 95%, 60%, 0.45),
+        0 0 110px hsla(40, 85%, 50%, 0.25),
+        0 0 160px hsla(40, 80%, 45%, 0.10);
+    }
+  }
+  .profile-glow-breathe {
+    animation: profile-glow-breathe 1.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  }
+
+  /* Banner fade-in is now handled by Framer Motion in HeaderGenerator
+   * (visible prop) so it uses the same animation system as the profile
+   * canvas crossfade — both start in the exact same React render cycle. */
 
   .skip-link {
     position: absolute;
@@ -257,6 +317,55 @@
   @keyframes glitter-shimmer {
     0%, 100% { background-position: 0% 0%, 0% 0%; }
     50%      { background-position: -90px 0%, 100% 0%; }
+  }
+
+  /* ── Rotating gold glow border for circular interactive elements ──────
+     A wrapper with .glow-ring-wrapper containing a .glow-ring-blur (the
+     blurred glow) and .glow-ring (the crisp border). Both use a spinning
+     conic-gradient pseudo-element. Only visible on hover. */
+  @keyframes glow-spin {
+    100% { transform: translate(-50%, -50%) rotate(1turn); }
+  }
+
+  .glow-ring-wrapper {
+    position: relative;
+  }
+
+  .glow-ring {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--glow-angle, 0deg),
+      transparent 0%,
+      var(--color-gold-light) 12%,
+      transparent 25%,
+      transparent 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    animation: btn-glow-spin 3s linear infinite;
+  }
+
+  .glow-ring-blur {
+    display: none;
+  }
+
+  /* Show on hover of the wrapper */
+  .glow-ring-wrapper:hover .glow-ring {
+    opacity: 1;
   }
 
   /* Respect users who request reduced motion */

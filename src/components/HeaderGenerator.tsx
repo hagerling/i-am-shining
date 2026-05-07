@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { ArrowsClockwise, DownloadSimple } from '@phosphor-icons/react';
+import { motion } from 'framer-motion';
 import { renderLinkedInHeader, makeRandomHeaderOptions } from '../lib/headerCanvas';
 import type { HeaderOptions } from '../lib/headerCanvas';
 import { saveCanvasImage, isIOS } from '../lib/download';
@@ -44,9 +44,16 @@ interface Props {
   /** Hands the parent the regenerate function so the toolbar can trigger
    *  a full re-randomization of the kaleidoscope. */
   onRegenerateReady?: (regenerate: () => void) => void;
+  /** Controls the synchronised fade-in — when true the banner + reflection
+   *  fade in over 0.5 s, matching the profile canvas crossfade so both
+   *  appear at the exact same moment. */
+  visible?: boolean;
+  /** Passes the current banner blob URL to the parent so it can be used
+   *  in the LinkedIn preview section without re-rendering. */
+  onImgUrl?: (url: string | null) => void;
 }
 
-export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, intensity = 0.5, onReady, onCanvasReady, onRendererReady, onRegenerateReady }: Props) {
+export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, intensity = 0.5, onReady, onCanvasReady, onRendererReady, onRegenerateReady, visible = true, onImgUrl }: Props) {
   const tintRef = useRef<string | undefined>(tintFilter);
   useEffect(() => { tintRef.current = tintFilter; }, [tintFilter]);
   const intensityRef = useRef(intensity);
@@ -97,7 +104,8 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
   useEffect(() => {
     if (imgUrl && onReady) onReady();
     if (imgUrl && onCanvasReady && canvasRef.current) onCanvasReady(canvasRef.current);
-  }, [imgUrl, onReady, onCanvasReady]);
+    if (onImgUrl) onImgUrl(imgUrl);
+  }, [imgUrl, onReady, onCanvasReady, onImgUrl]);
 
   // Hand the parent a renderer it can call to produce a banner canvas
   // (with or without text) on demand.
@@ -306,7 +314,12 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
       : '';
 
   return (
-    <div style={{ width: '100%' }}>
+    <motion.div
+      style={{ width: '100%' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: visible ? 1 : 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
 
       {/* Live region for screen readers — announces when the banner
           regenerates so non-sighted users know the visual changed. */}
@@ -321,7 +334,6 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
       {/* Full-bleed banner — breaks out of any max-width parent so it spans
           the viewport at the very top of the page. */}
       <div
-        className="banner-preview"
         style={{
           position: 'relative',
           width: '100vw',
@@ -329,9 +341,10 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
           transform: 'translateX(-50%)',
           maxWidth: '100vw',
           // Height is taller than the banner's native 4:1 to make room for the
-          // profile picture overlap. The img uses object-fit: cover so the
-          // kaleidoscope fills the slot without distortion — excess width crops.
-          height: 'calc(8rem + min(37.5vw, 190px))',
+          // profile picture overlap + desktop push-down. The img uses
+          // object-fit: cover so the kaleidoscope fills the slot without
+          // distortion — excess width crops.
+          height: 'calc(8rem + 2.5rem + min(45vw, 260px))',
           overflow: 'hidden',
           boxShadow: '0 4px 32px rgba(0,0,0,0.45)',
           background: '#0e0902',
@@ -355,17 +368,16 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
           />
         ) : null}
 
-        {/* Soft dark vignette behind the hero text — improves contrast for
-            "I am #Shining" without obscuring the kaleidoscope. The overlay
-            spans the full banner so the gradient fades to transparent
-            naturally; no hard edge anywhere. */}
+        {/* Shadow vignette — opaque at top for hero text contrast,
+            fading to transparent at the bottom so the kaleidoscope
+            shows through in full colour near the profile circle. */}
         <div
           aria-hidden
           style={{
             position: 'absolute',
             inset: 0,
             background:
-              'radial-gradient(ellipse 60% 70% at 50% 0%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 35%, rgba(0,0,0,0.10) 65%, transparent 100%)',
+              'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.25) 50%, transparent 100%)',
             pointerEvents: 'none',
             zIndex: 2,
           }}
@@ -386,7 +398,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
             left: '50%',
             transform: 'translateX(-50%)',
             maxWidth: '100vw',
-            height: 'min(37.5vw, 190px)',
+            height: 'min(45vw, 260px)',
             overflow: 'hidden',
             pointerEvents: 'none',
             WebkitMaskImage:
@@ -408,7 +420,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
               // Match the original banner height — flipping it then exposes
               // the banner's BOTTOM rows at the reflection's top, so the
               // mirror is seamless at the boundary.
-              height: 'calc(8rem + min(37.5vw, 190px))',
+              height: 'calc(8rem + 2.5rem + min(45vw, 260px))',
               objectFit: 'cover',
               transform: 'scaleY(-1)',
               display: 'block',
@@ -510,6 +522,6 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
           outline: none;
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }
