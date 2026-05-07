@@ -116,6 +116,31 @@ export async function saveCanvasImages(
   }
 }
 
+/**
+ * Save a canvas as an SVG file.
+ * Embeds the canvas raster as a base64 <image> inside an SVG wrapper
+ * so users get an .svg file that can be opened in vector editors.
+ */
+export function saveCanvasAsSVG(
+  canvas: HTMLCanvasElement,
+  filename: string,
+): void {
+  const w = canvas.width;
+  const h = canvas.height;
+  const dataUrl = canvas.toDataURL('image/png');
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <image width="${w}" height="${h}" xlink:href="${dataUrl}" />
+</svg>`;
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /** True when we're on an iOS device (iPhone, iPad, iPod). */
 export function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;

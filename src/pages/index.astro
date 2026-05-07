@@ -105,9 +105,6 @@ import testimonials from '../data/testimonials.json';
         <p class="footer-meta">
           Built privacy-first. Your photo never leaves the browser.
         </p>
-        <p class="footer-credit">
-          Made by <a href="https://github.com/hagerling" rel="noopener noreferrer" target="_blank">Carl Hagerling</a>
-        </p>
       </div>
     </footer>
   </main>
@@ -145,8 +142,7 @@ import testimonials from '../data/testimonials.json';
 
   .has-photo .hero h1 {
     color: #fff;
-    text-shadow: 0 2px 20px rgba(0,0,0,0.55);
-    transition: color 0.5s ease, text-shadow 0.5s ease;
+    transition: color 0.5s ease;
   }
 
   .has-photo .hero h1 em {
@@ -154,7 +150,18 @@ import testimonials from '../data/testimonials.json';
     -webkit-background-clip: unset;
     background-clip: unset;
     -webkit-text-fill-color: #fff;
-    filter: drop-shadow(0 0 12px rgba(255,215,0,0.5));
+  }
+
+  /* When a photo is uploaded the hero always sits on the dark banner —
+     theme switching must NOT change text colour. Only contrast matters. */
+  [data-theme="light"] .has-photo .hero h1 {
+    color: #fff;
+  }
+  [data-theme="light"] .has-photo .hero h1 em {
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    -webkit-text-fill-color: #fff;
   }
 
   /* ── Page structure ───────────────────────── */
@@ -182,8 +189,7 @@ import testimonials from '../data/testimonials.json';
     align-items: center;
     justify-content: center;
     text-align: center;
-    background: radial-gradient(ellipse 80% 60% at 50% 50%, hsla(40, 80%, 30%, 0.25) 0%, transparent 70%);
-    transition: background 0s;
+    background: transparent;
     /* Hero is just text; let clicks pass through so the banner's corner
      * buttons (refresh / download) aren't blocked. */
     pointer-events: none;
@@ -238,20 +244,12 @@ import testimonials from '../data/testimonials.json';
   @keyframes shining-bling {
     0% {
       background-position: -120% 50%;
-      filter: drop-shadow(0 0 0 rgba(255, 215, 0, 0));
     }
     35% {
       background-position: 40% 50%;
-      filter: drop-shadow(0 0 18px rgba(255, 215, 0, 0.75))
-              drop-shadow(0 0 38px rgba(255, 250, 200, 0.5));
-    }
-    65% {
-      filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4))
-              drop-shadow(0 0 26px rgba(255, 250, 200, 0.25));
     }
     100% {
       background-position: 220% 50%;
-      filter: drop-shadow(0 0 0 rgba(255, 215, 0, 0));
     }
   }
 
@@ -271,9 +269,20 @@ import testimonials from '../data/testimonials.json';
     z-index: 10;
     width: 100%;
     max-width: 700px;
-    /* No top padding — the profile circle must start at exactly
-     * max(25vw, 200px) from page top (i.e. immediately after .hero). */
     padding: 0 1rem 6rem;
+    background: var(--color-bg);
+    border-radius: 1rem;
+  }
+  /* Remove solid bg once a photo is loaded so the image shows through */
+  :global(.has-photo) .editor-section {
+    background: transparent;
+    border-radius: 0;
+  }
+
+  @media (min-width: 640px) {
+    .editor-section {
+      padding-top: 2.5rem;
+    }
   }
 
 
@@ -282,7 +291,13 @@ import testimonials from '../data/testimonials.json';
     max-width: 700px;
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--color-gold-dim), transparent);
-    margin: 1rem auto;
+    margin: 2rem auto;
+  }
+
+  @media (min-width: 640px) {
+    .divider {
+      margin: 4rem auto;
+    }
   }
 
   .site-footer {
@@ -291,7 +306,7 @@ import testimonials from '../data/testimonials.json';
     color: var(--color-text-muted);
     text-align: center;
     border-top: 1px solid rgba(184, 134, 11, 0.18);
-    margin-top: 2rem;
+    margin-top: 0;
     background:
       radial-gradient(ellipse 60% 100% at 50% 0%, hsla(40, 80%, 30%, 0.10) 0%, transparent 70%);
   }
@@ -356,25 +371,18 @@ import testimonials from '../data/testimonials.json';
     opacity: 0.5;
   }
 
-  .footer-credit {
-    margin: 0.4rem 0 0;
-    font-size: 0.78rem;
-    color: var(--color-text-muted);
-    letter-spacing: 0.04em;
-  }
-
-  .footer-credit a {
-    color: var(--color-text);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    text-decoration-color: rgba(218, 165, 32, 0.5);
-  }
 
   /* ── FAQ ─────────────────────────────────── */
   .faq-section {
     width: 100%;
     max-width: 700px;
     padding: 3rem 1rem 5rem;
+  }
+
+  @media (min-width: 640px) {
+    .faq-section {
+      padding: 4rem 1rem 6rem;
+    }
   }
 
   .faq-label {
@@ -449,7 +457,7 @@ import testimonials from '../data/testimonials.json';
   }
 
   .faq-item[open] .faq-question {
-    color: var(--color-gold-light);
+    color: var(--color-text);
   }
 
   /* JS-driven open/close animation — see <script> below. We just need the

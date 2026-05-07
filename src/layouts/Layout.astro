@@ -225,6 +225,15 @@ const canonicalUrl = canonical ?? siteUrl + Astro.url.pathname;
         document.documentElement.setAttribute('data-theme', stored || 'dark');
       })();
     </script>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CPV46HFPWB"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-CPV46HFPWB');
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
