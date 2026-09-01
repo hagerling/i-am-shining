@@ -9,7 +9,14 @@ import testimonials from '../data/testimonials.json';
 <Layout>
   <DiscoBall client:only="react" />
 
+  {/* Background glitter — fixed behind everything, drifts slowly. */}
+  <div class="page-glitter" aria-hidden="true"></div>
+
   <main id="main-content" tabindex="-1">
+    {/* Cloud puffs — soft warm/pink glows in the upper corners of the page. */}
+    <div class="cloud-puff cloud-puff--tl" aria-hidden="true"></div>
+    <div class="cloud-puff cloud-puff--tr" aria-hidden="true"></div>
+
     {/* Banner lives behind everything as an absolute layer — it never
         pushes the hero text or profile circle, so they stay in exactly
         the same position whether a photo is loaded or not. */}
@@ -17,7 +24,13 @@ import testimonials from '../data/testimonials.json';
 
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-inner">
-        <h1 id="hero-title">I am <em>#Shining</em></h1>
+        <h1 id="hero-title">
+          <span class="hero-i">I am</span>
+          <em class="glitter-text">#Shining</em>
+        </h1>
+        <span class="ribbon hero-ribbon" aria-hidden="true">
+          shine bright in your golden season
+        </span>
       </div>
     </section>
 
@@ -26,6 +39,9 @@ import testimonials from '../data/testimonials.json';
       class="editor-section reveal"
       aria-label="Profile photo editor"
     >
+      {/* Sunburst rays radiate from behind the profile circle while the
+          dropzone is showing. Hidden once a banner takes over. */}
+      <div class="sunburst-rays" aria-hidden="true"></div>
       {/* The HowTo schema deep-links to #step-upload, #step-adjust,
           #step-download — all live inside the editor section. The two
           inner anchor markers below have no visible content; they exist
@@ -43,7 +59,11 @@ import testimonials from '../data/testimonials.json';
 
     <!-- FAQ -->
     <section class="faq-section reveal" aria-labelledby="faq-heading">
-      <h2 id="faq-heading" class="faq-heading">Frequently Asked Questions</h2>
+      <div class="faq-label">FAQ</div>
+      <h2 id="faq-heading" class="faq-heading">
+        <span class="heading-sparkle">Frequently Asked Questions</span>
+      </h2>
+      <p class="faq-subhead">Here are some questions I get asked.</p>
 
       <div class="faq-list">
         <details class="faq-item">
@@ -100,7 +120,8 @@ import testimonials from '../data/testimonials.json';
     <footer class="site-footer reveal" aria-labelledby="footer-tagline">
       <div class="footer-inner">
         <p id="footer-tagline" class="footer-tagline">
-          <span class="footer-mark">#</span>Shining &mdash; keep it golden
+          Keep <em>shining</em>, beautiful soul.
+          <span class="footer-heart" aria-hidden="true">♡</span>
         </p>
         <p class="footer-meta">
           Built privacy-first. Your photo never leaves the browser.
@@ -138,6 +159,28 @@ import testimonials from '../data/testimonials.json';
   /* When a photo is loaded, the hero text turns white for contrast on banner */
   .has-photo .hero {
     background: transparent;
+    /* Stretch so profile circle centre = 50vh = banner centre. */
+    height: max(12rem, calc(50vh - min(45vw, 200px)));
+  }
+  @supports (height: 100svh) {
+    .has-photo .hero {
+      height: max(12rem, calc(50svh - min(45vw, 200px)));
+    }
+  }
+  /* When a photo is loaded, push the controls block below the 100vh
+   * banner so the kaleidoscope + portrait fully own the above-the-fold.
+   * Distance from profile-slot bottom to controls top should equal
+   * (100vh − profile-slot-bottom) = (100vh − 50vh − radius) = 50vh − radius.
+   * 2rem of that distance is already provided by the flex gap-8 between
+   * the slot and the controls, so margin-top covers the remainder. */
+  .has-photo [data-controls-block] {
+    margin-top: max(0px, calc(50vh - min(45vw, 200px) - 2rem));
+    transition: margin-top 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @supports (height: 100svh) {
+    .has-photo [data-controls-block] {
+      margin-top: max(0px, calc(50svh - min(45vw, 200px) - 2rem));
+    }
   }
 
   .has-photo .hero h1 {
@@ -178,18 +221,20 @@ import testimonials from '../data/testimonials.json';
     position: relative;
     z-index: 10;
     width: 100%;
-    /* Fixed compact height — ensures the hero text AND the profile circle
-     * are at the exact same positions whether a photo is loaded or not.
-     * The banner (when present) overrides its own height to end at
-     * (hero-height + profile-half), matching the circle's centre. */
-    height: 8rem;
-    padding: 0 1rem;
+    /* Default (dropzone state): compact 12rem hero with text near the top
+     * and the dropzone circle just below. When a photo loads, the hero
+     * stretches so the profile circle's centre falls at 50vh — putting
+     * the kaleidoscope + portrait fully above the fold. */
+    height: 12rem;
+    padding: 1rem 1rem 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     background: transparent;
+    transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                background 0.4s ease;
     /* Hero is just text; let clicks pass through so the banner's corner
      * buttons (refresh / download) aren't blocked. */
     pointer-events: none;
@@ -201,15 +246,83 @@ import testimonials from '../data/testimonials.json';
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
+    gap: 0.65rem;
+  }
+
+  /* Italic display tagline under the hero — mockup-inspired, fades when
+   * a photo loads so it doesn't compete with the banner. */
+  .hero-tagline {
+    margin: 0;
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    transition: opacity 0.4s ease;
+  }
+  .hero-tagline-mark {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light));
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 0.85em;
+  }
+  .has-photo .hero-tagline {
+    opacity: 0;
+    pointer-events: none;
   }
 
   h1 {
     font-family: 'DM Serif Display', serif;
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
-    line-height: 1.08;
+    /* Bumped: more theatrical, mockup-scale display type. */
+    font-size: clamp(3.25rem, 8.5vw, 6.5rem);
+    line-height: 1.0;
     color: var(--color-text);
     margin: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.32em;
+    letter-spacing: -0.012em;
+  }
+  .hero-i {
+    font-style: normal;
+    color: var(--color-text);
+    /* Subtle inner shadow for depth */
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
+  }
+  .has-photo .hero-i {
+    color: #fff;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+  }
+  /* Italic hero accent now uses .glitter-text utility — overrides the
+   * old gold gradient. Add a subtle bling pulse on top of glitter. */
+  h1 em.glitter-text {
+    font-style: italic;
+  }
+  /* The pre-existing bling animation reads background-position; with the
+   * shimmer keyframe owning that property, disable bling on glitter-text
+   * to avoid jitter. */
+  h1 em.glitter-text.bling {
+    animation: glitter-shimmer 9s ease-in-out infinite, bling-pulse 1.4s ease-out;
+  }
+  @keyframes bling-pulse {
+    0%, 100% { filter:
+      drop-shadow(0 1px 0 rgba(0, 0, 0, 0.30))
+      drop-shadow(0 0 18px rgba(255, 215, 0, 0.35))
+      drop-shadow(0 0 36px rgba(255, 200, 80, 0.20));
+    }
+    40% { filter:
+      drop-shadow(0 1px 0 rgba(0, 0, 0, 0.30))
+      drop-shadow(0 0 30px rgba(255, 235, 130, 0.85))
+      drop-shadow(0 0 60px rgba(255, 215, 0, 0.55));
+    }
+  }
+  .hero-ribbon {
+    margin-top: 0.4rem;
   }
 
   h1 em {
@@ -251,6 +364,24 @@ import testimonials from '../data/testimonials.json';
     100% {
       background-position: 220% 50%;
     }
+  }
+
+  /* Profile coin rotation — slow spin so the gold #SHINING text revolves
+   * around the photo. Pauses by removing the .profile-rotating class
+   * while the user is interacting (drag/zoom), so gestures stay aligned
+   * with the screen. Reduced-motion users see no rotation. */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes profile-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .profile-canvas-wrapper.profile-rotating {
+      animation: profile-spin 60s linear infinite;
+    }
+  }
+  /* Smooth back to 0° when interaction starts (animation removed). */
+  .profile-canvas-wrapper {
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .hero-sub {
@@ -322,14 +453,25 @@ import testimonials from '../data/testimonials.json';
 
   .footer-tagline {
     font-family: 'DM Serif Display', serif;
-    font-size: 1.4rem;
-    font-style: italic;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-style: normal;
     margin: 0;
     color: var(--color-text);
     background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light), var(--color-amber));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: -0.005em;
+  }
+  .footer-tagline em {
+    font-style: italic;
+  }
+  .footer-heart {
+    -webkit-text-fill-color: var(--color-magenta);
+    color: var(--color-magenta);
+    margin-left: 0.25rem;
+    font-style: normal;
+    text-shadow: 0 0 18px rgba(255, 95, 141, 0.45);
   }
 
   .footer-mark {
@@ -400,25 +542,76 @@ import testimonials from '../data/testimonials.json';
 
   .faq-heading {
     font-family: 'DM Serif Display', serif;
-    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-style: italic;
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
     color: var(--color-text);
-    margin: 0 0 2.5rem;
+    margin: 0 0 0.5rem;
     line-height: 1.1;
   }
+  .faq-section { text-align: center; }
+  .faq-section .faq-list { text-align: left; margin-top: 2rem; }
+  .faq-subhead {
+    color: var(--color-text-muted);
+    font-size: 0.92rem;
+    margin: 0 0 1.75rem;
+    letter-spacing: 0.01em;
+  }
 
+  /* FAQ list inside a luminous frosted box — mockup motif. */
   .faq-list {
     display: flex;
     flex-direction: column;
     gap: 0;
+    padding: 0.5rem 1.5rem;
+    margin: 0 auto;
+    max-width: 620px;
+    border-radius: 1.5rem;
+    background:
+      linear-gradient(168deg,
+        rgba(48, 30, 10, 0.55) 0%,
+        rgba(28, 18, 6, 0.40) 60%,
+        rgba(20, 12, 3, 0.35) 100%);
+    border: 1px solid transparent;
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 245, 210, 0.10),
+      0 1px 2px rgba(0, 0, 0, 0.30),
+      0 14px 40px rgba(0, 0, 0, 0.34),
+      0 0 60px rgba(218, 165, 32, 0.10);
+    position: relative;
+  }
+  /* Gradient ring around the FAQ box, same trick as the testimonial cards. */
+  .faq-list::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(160deg,
+      rgba(255, 232, 140, 0.55) 0%,
+      rgba(218, 165, 32, 0.30) 25%,
+      rgba(184, 134, 11, 0.18) 55%,
+      rgba(184, 134, 11, 0.10) 80%,
+      rgba(255, 215, 0, 0.18) 100%);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+  [data-theme="light"] .faq-list {
+    background:
+      linear-gradient(168deg,
+        rgba(255, 250, 235, 0.78) 0%,
+        rgba(252, 244, 225, 0.62) 100%);
   }
 
   .faq-item {
-    border-bottom: 1px solid rgba(184,134,11,0.18);
+    border-bottom: 1px solid rgba(184,134,11,0.16);
   }
-
-  .faq-item:first-child {
-    border-top: 1px solid rgba(184,134,11,0.18);
-  }
+  .faq-item:last-child { border-bottom: none; }
 
   .faq-question {
     list-style: none;
@@ -442,15 +635,16 @@ import testimonials from '../data/testimonials.json';
   .faq-question::after {
     content: '';
     flex-shrink: 0;
-    width: 0.55rem;
-    height: 0.55rem;
-    border-right: 2px solid var(--color-gold);
-    border-bottom: 2px solid var(--color-gold);
+    width: 0.6rem;
+    height: 0.6rem;
+    border-right: 2px solid var(--color-gold-light);
+    border-bottom: 2px solid var(--color-gold-light);
     transform: rotate(45deg);
-    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
+                border-color 0.25s ease;
     margin-bottom: 0.2rem;
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.35));
   }
-
   .faq-item[open] .faq-question::after {
     transform: rotate(-135deg);
     margin-bottom: -0.2rem;

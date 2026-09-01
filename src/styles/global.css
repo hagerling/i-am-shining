@@ -7,6 +7,10 @@
     --color-gold-light: #ffd700;
     --color-gold-dim: #b8860b;
     --color-amber: #ff9f00;
+    /* Retro-glam pink — secondary accent for headings, ribbons, hearts.
+     * Used sparingly to break up the all-gold rhythm. */
+    --color-magenta: #ff5f8d;
+    --color-magenta-deep: #c93a6a;
     --radius-card: 1.5rem;
 
     /* Dark mode (default) */
@@ -230,6 +234,36 @@
    * (visible prop) so it uses the same animation system as the profile
    * canvas crossfade — both start in the exact same React render cycle. */
 
+  /* Kaleidoscope motion — three layered copies of the same banner img,
+   * all anchored at top/left 50% and oversized so they never expose the
+   * banner-preview corners. Each rotates at a different rate / direction;
+   * blended together with `screen` and `lighten` they interfere as the
+   * facets pass through each other, giving the wheel real dynamic motion
+   * instead of a single static image being spun. */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes banner-spin-cw {
+      from { transform: translate(-50%, -50%) rotate(0deg)   scale(1); }
+      50%  { transform: translate(-50%, -50%) rotate(180deg) scale(1.04); }
+      to   { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
+    }
+    @keyframes banner-spin-ccw {
+      from { transform: translate(-50%, -50%) rotate(0deg)    scale(1.05); }
+      50%  { transform: translate(-50%, -50%) rotate(-180deg) scale(1.0); }
+      to   { transform: translate(-50%, -50%) rotate(-360deg) scale(1.05); }
+    }
+    @keyframes banner-spin-haze {
+      from { transform: translate(-50%, -50%) rotate(0deg)    scale(1.08); opacity: 0.30; }
+      50%  { transform: translate(-50%, -50%) rotate(120deg)  scale(1.18); opacity: 0.45; }
+      to   { transform: translate(-50%, -50%) rotate(360deg)  scale(1.08); opacity: 0.30; }
+    }
+    .has-photo .banner-img--base    { animation: banner-spin-cw   90s linear infinite; }
+    .has-photo .banner-img--reflect { animation: banner-spin-ccw  60s linear infinite; }
+    .has-photo .banner-img--haze    { animation: banner-spin-haze 140s ease-in-out infinite; }
+  }
+  /* Default (animations disabled or before .has-photo): keep the layers
+   * centred so they don't shift to the top-left of the banner. */
+  .banner-img-spin { transform: translate(-50%, -50%); }
+
   .skip-link {
     position: absolute;
     left: -9999px;
@@ -366,6 +400,252 @@
   /* Show on hover of the wrapper */
   .glow-ring-wrapper:hover .glow-ring {
     opacity: 1;
+  }
+
+  /* Hand-drawn ribbon banner (the "I don't chase the light" element from
+   * the mockup). Trapezoid body with two cut-out triangle tails. */
+  .ribbon {
+    --rib-h: 2.5rem;
+    --rib-tail: 0.9rem;
+    --rib-bg: linear-gradient(180deg, #ffd866 0%, #b8860b 60%, #8b6708 100%);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--rib-h);
+    padding: 0 1.5rem;
+    color: #1a0d02;
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    background: var(--rib-bg);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 8px 18px rgba(0, 0, 0, 0.35),
+      0 0 24px rgba(255, 200, 80, 0.18);
+    clip-path: polygon(
+      0% 0%, calc(100% - 0%) 0%, 100% 50%,
+      calc(100% - 0%) 100%, 0% 100%, 0% 50%
+    );
+  }
+  /* Triangle tails on each end */
+  .ribbon::before,
+  .ribbon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+  .ribbon::before {
+    left: calc(-1 * var(--rib-tail));
+    border-width: calc(var(--rib-h) / 2) var(--rib-tail) calc(var(--rib-h) / 2) 0;
+    border-color: transparent #b8860b transparent transparent;
+    transform: translateY(-50%);
+    filter: drop-shadow(-2px 0 4px rgba(0, 0, 0, 0.35));
+  }
+  .ribbon::after {
+    right: calc(-1 * var(--rib-tail));
+    border-width: calc(var(--rib-h) / 2) 0 calc(var(--rib-h) / 2) var(--rib-tail);
+    border-color: transparent transparent transparent #b8860b;
+    transform: translateY(-50%);
+    filter: drop-shadow(2px 0 4px rgba(0, 0, 0, 0.35));
+  }
+
+  /* Cloud puffs — large soft radial gradients in the corners of the hero
+   * area. Adds the dreamy backdrop from the mockup. */
+  .cloud-puff {
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.55;
+  }
+  .cloud-puff--tl {
+    top: -12vh; left: -10vw;
+    width: 50vw; height: 50vw;
+    max-width: 720px; max-height: 720px;
+    background: radial-gradient(circle,
+      rgba(255, 200, 80, 0.32) 0%,
+      rgba(184, 134, 11, 0.12) 40%,
+      transparent 70%);
+  }
+  .cloud-puff--tr {
+    top: -14vh; right: -10vw;
+    width: 45vw; height: 45vw;
+    max-width: 640px; max-height: 640px;
+    background: radial-gradient(circle,
+      rgba(255, 95, 141, 0.18) 0%,
+      rgba(255, 160, 80, 0.10) 40%,
+      transparent 70%);
+  }
+  [data-theme="light"] .cloud-puff--tl {
+    background: radial-gradient(circle,
+      rgba(255, 215, 100, 0.55) 0%,
+      rgba(255, 175, 80, 0.25) 40%,
+      transparent 70%);
+    opacity: 0.75;
+  }
+  [data-theme="light"] .cloud-puff--tr {
+    background: radial-gradient(circle,
+      rgba(255, 130, 160, 0.32) 0%,
+      rgba(255, 175, 110, 0.18) 40%,
+      transparent 70%);
+    opacity: 0.7;
+  }
+
+  /* Sunset / rainbow arcs — concentric semi-circles in warm gold tones.
+   * Used as decorative bookends around section headings (testimonials). */
+  .sunset-arc {
+    position: relative;
+    width: 110px;
+    height: 55px;
+    overflow: hidden;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+  .sunset-arc::before,
+  .sunset-arc::after,
+  .sunset-arc > span {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 999px 999px 0 0;
+  }
+  .sunset-arc::before {
+    width: 110px; height: 55px;
+    background: linear-gradient(180deg, #ff5f8d 0%, #ff5f8d 100%);
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.10);
+  }
+  .sunset-arc > span {
+    width: 80px; height: 40px;
+    background: linear-gradient(180deg, #ffa050 0%, #ffa050 100%);
+  }
+  .sunset-arc::after {
+    width: 50px; height: 25px;
+    background: linear-gradient(180deg, #ffd866 0%, #ffd866 100%);
+  }
+  .sunset-arc--right { transform: scaleX(-1); }
+
+
+
+  /* Scattered glitter — fixed-position layer of tiny radial dots that sits
+   * behind everything. Drifts very slowly so it feels alive without
+   * distracting. Disabled by prefers-reduced-motion. */
+  .page-glitter {
+    position: fixed;
+    inset: -10vh -5vw;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 232, 140, 0.65), transparent 40%),
+      radial-gradient(1px 1px at 78% 14%, rgba(255, 215, 0, 0.55), transparent 40%),
+      radial-gradient(1.5px 1.5px at 88% 60%, rgba(255, 232, 140, 0.55), transparent 40%),
+      radial-gradient(1px 1px at 22% 78%, rgba(255, 215, 0, 0.50), transparent 40%),
+      radial-gradient(2px 2px at 64% 84%, rgba(255, 250, 200, 0.55), transparent 45%),
+      radial-gradient(1px 1px at 92% 32%, rgba(255, 250, 200, 0.50), transparent 40%),
+      radial-gradient(1.5px 1.5px at 8% 48%, rgba(255, 232, 140, 0.50), transparent 40%),
+      radial-gradient(1px 1px at 38% 8%, rgba(255, 215, 0, 0.45), transparent 40%),
+      radial-gradient(1px 1px at 56% 38%, rgba(255, 232, 140, 0.45), transparent 40%),
+      radial-gradient(1.5px 1.5px at 70% 52%, rgba(255, 215, 0, 0.45), transparent 40%),
+      radial-gradient(1px 1px at 30% 62%, rgba(255, 232, 140, 0.45), transparent 40%),
+      radial-gradient(1px 1px at 84% 88%, rgba(255, 215, 0, 0.50), transparent 40%);
+    animation: glitter-drift 60s linear infinite;
+    opacity: 0.85;
+  }
+  @keyframes glitter-drift {
+    0%   { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-3vw, -2vh, 0); }
+  }
+  [data-theme="light"] .page-glitter {
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgba(184, 134, 11, 0.55), transparent 40%),
+      radial-gradient(1px 1px at 78% 14%, rgba(184, 134, 11, 0.50), transparent 40%),
+      radial-gradient(1.5px 1.5px at 88% 60%, rgba(218, 165, 32, 0.50), transparent 40%),
+      radial-gradient(1px 1px at 22% 78%, rgba(184, 134, 11, 0.45), transparent 40%),
+      radial-gradient(2px 2px at 64% 84%, rgba(218, 165, 32, 0.55), transparent 45%),
+      radial-gradient(1px 1px at 92% 32%, rgba(184, 134, 11, 0.45), transparent 40%),
+      radial-gradient(1.5px 1.5px at 8% 48%, rgba(218, 165, 32, 0.45), transparent 40%),
+      radial-gradient(1px 1px at 38% 8%, rgba(184, 134, 11, 0.40), transparent 40%);
+    opacity: 0.6;
+  }
+
+  /* Sunburst rays behind the profile circle. Conic gradient with hard
+   * stops gives crisp ray edges; the radial mask fades them out at the
+   * edges so they blend into the page glow. Slow rotation = "alive". */
+  .sunburst-rays {
+    position: absolute;
+    inset: 50% 0 0 50%;
+    width: 220%;
+    height: 220%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: -1;
+    background: conic-gradient(
+      from 0deg,
+      rgba(255, 215, 0, 0.18) 0deg, rgba(255, 215, 0, 0.18) 6deg,
+      transparent 6deg, transparent 24deg,
+      rgba(255, 232, 140, 0.12) 24deg, rgba(255, 232, 140, 0.12) 28deg,
+      transparent 28deg, transparent 48deg,
+      rgba(255, 215, 0, 0.16) 48deg, rgba(255, 215, 0, 0.16) 54deg,
+      transparent 54deg, transparent 76deg,
+      rgba(255, 200, 80, 0.14) 76deg, rgba(255, 200, 80, 0.14) 80deg,
+      transparent 80deg, transparent 102deg,
+      rgba(255, 232, 140, 0.18) 102deg, rgba(255, 232, 140, 0.18) 108deg,
+      transparent 108deg, transparent 130deg,
+      rgba(255, 215, 0, 0.12) 130deg, rgba(255, 215, 0, 0.12) 134deg,
+      transparent 134deg, transparent 156deg,
+      rgba(255, 200, 80, 0.16) 156deg, rgba(255, 200, 80, 0.16) 162deg,
+      transparent 162deg, transparent 184deg,
+      rgba(255, 232, 140, 0.14) 184deg, rgba(255, 232, 140, 0.14) 188deg,
+      transparent 188deg, transparent 210deg,
+      rgba(255, 215, 0, 0.18) 210deg, rgba(255, 215, 0, 0.18) 216deg,
+      transparent 216deg, transparent 236deg,
+      rgba(255, 200, 80, 0.12) 236deg, rgba(255, 200, 80, 0.12) 240deg,
+      transparent 240deg, transparent 262deg,
+      rgba(255, 232, 140, 0.16) 262deg, rgba(255, 232, 140, 0.16) 268deg,
+      transparent 268deg, transparent 288deg,
+      rgba(255, 215, 0, 0.14) 288deg, rgba(255, 215, 0, 0.14) 292deg,
+      transparent 292deg, transparent 314deg,
+      rgba(255, 200, 80, 0.18) 314deg, rgba(255, 200, 80, 0.18) 320deg,
+      transparent 320deg, transparent 340deg,
+      rgba(255, 232, 140, 0.12) 340deg, rgba(255, 232, 140, 0.12) 344deg,
+      transparent 344deg, transparent 360deg);
+    -webkit-mask: radial-gradient(circle, #000 32%, rgba(0,0,0,0.7) 50%, transparent 80%);
+            mask: radial-gradient(circle, #000 32%, rgba(0,0,0,0.7) 50%, transparent 80%);
+    animation: sunburst-spin 90s linear infinite;
+  }
+  @keyframes sunburst-spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+  /* Hide rays after a photo is loaded so they don't compete with the
+   * banner's own kaleidoscope rays. */
+  .has-photo .sunburst-rays { opacity: 0; transition: opacity 0.4s ease; }
+
+  /* Section heading flair — tiny golden sparkle marks before/after a
+   * heading, used to set off "Who's Shining", FAQ, etc. */
+  .heading-sparkle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .heading-sparkle::before,
+  .heading-sparkle::after {
+    content: '✦';
+    font-size: 0.85em;
+    background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold-light));
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0.85;
   }
 
   /* Respect users who request reduced motion */
