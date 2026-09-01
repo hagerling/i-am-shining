@@ -146,7 +146,7 @@ export function SocialFeed({ testimonials }: Props) {
         </div>
         <h2 style={{
           fontFamily: 'DM Serif Display, serif',
-          fontSize: 'clamp(2rem, 4.5vw, 3.2rem)',
+          fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
           color: 'var(--color-text)',
           margin: 0,
           lineHeight: 1.05,

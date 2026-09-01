@@ -909,7 +909,9 @@ export function ImageEditor() {
             >
               <div
                 ref={wrapperRef}
-                className="profile-canvas-wrapper"
+                className={`profile-canvas-wrapper${
+                  photoSrc && bannerReady && !isInteracting ? ' profile-rotating' : ''
+                }`}
                 style={{
                   position: 'relative',
                   width: '100%',
@@ -1023,6 +1025,7 @@ export function ImageEditor() {
         {revealReady && (
           <motion.div
             key="controls"
+            data-controls-block
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}

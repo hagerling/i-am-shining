@@ -23,7 +23,11 @@
     "fetch-linkedin": "node scripts/fetch-linkedin.mjs",
     "deploy": "lftp -e \"mirror -R --delete --exclude .DS_Store --exclude staging/ dist/ /i-am-shining.com/public_html/; quit\" ftpcluster.loopia.se",
     "build:staging": "STAGING=1 astro build",
-    "deploy:staging": "lftp -e \"mirror -R --delete --exclude .DS_Store dist/ /i-am-shining.com/public_html/staging/; quit\" ftpcluster.loopia.se"
+    "deploy:staging": "lftp -e \"mirror -R --delete --exclude .DS_Store dist/ /i-am-shining.com/public_html/staging/; quit\" ftpcluster.loopia.se",
+    "release": "bash scripts/release.sh",
+    "release:patch": "bash scripts/release.sh patch",
+    "release:minor": "bash scripts/release.sh minor",
+    "release:major": "bash scripts/release.sh major"
   },
   "vitest": {
     "environment": "jsdom"
