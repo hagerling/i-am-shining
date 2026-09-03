@@ -1,7 +1,7 @@
 {
   "name": "i-am-shining",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Upload a photo, apply the golden #Shining frame, download your radiant profile picture.",
   "homepage": "https://i-am-shining.com",
   "repository": {

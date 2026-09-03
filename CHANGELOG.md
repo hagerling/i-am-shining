@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and 
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-09-03
+
 ### Added
 - Retro-glam pass: sunburst rays behind the profile circle, a pure-CSS page
   glitter layer, cloud puffs, sunset arcs and a hand-drawn ribbon banner
