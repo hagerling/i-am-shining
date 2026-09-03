@@ -1049,6 +1049,13 @@ export function ImageEditor() {
                   borderRadius: '1.25rem',
                   padding: '0.875rem 1.25rem',
                   display: 'flex',
+                  // Wrap on narrow viewports. Every control except the slider
+                  // is flexShrink: 0, so on a 390px screen the row used to run
+                  // past the viewport edge and take the Download button with
+                  // it. Wrapping keeps every control reachable and leaves the
+                  // desktop single-row layout untouched (it still fits).
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
                   alignItems: 'center',
                   gap: '0.875rem',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,215,0,0.08)',
@@ -1109,6 +1116,10 @@ export function ImageEditor() {
                     accentColor: 'var(--color-gold)',
                     width: '100%',
                     flex: 1,
+                    // With the toolbar wrapping, a zero flex-basis would let
+                    // the slider collapse to a sliver on the first line.
+                    // A real minimum makes it claim its own row instead.
+                    minWidth: '9rem',
                     touchAction: 'pan-y',
                   }}
                 />

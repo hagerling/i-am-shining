@@ -157,13 +157,13 @@ import testimonials from '../data/testimonials.json';
    * applies (Astro scoped styles don't reach React-portaled elements). */
 
   /* When a photo is loaded, the hero text turns white for contrast on banner */
-  :global(.has-photo .hero) {
+  :global(html.has-photo .hero) {
     background: transparent;
     /* Stretch so profile circle centre = 50vh = banner centre. */
     height: max(12rem, calc(50vh - min(45vw, 200px)));
   }
   @supports (height: 100svh) {
-    :global(.has-photo .hero) {
+    :global(html.has-photo .hero) {
       height: max(12rem, calc(50svh - min(45vw, 200px)));
     }
   }
@@ -188,7 +188,7 @@ import testimonials from '../data/testimonials.json';
     transition: color 0.5s ease;
   }
 
-  :global(.has-photo .hero h1 em) {
+  :global(html.has-photo .hero h1 em) {
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
@@ -215,6 +215,13 @@ import testimonials from '../data/testimonials.json';
     display: flex;
     flex-direction: column;
     align-items: center;
+    /* Decorative layers inside <main> (sunburst rays, cloud puffs, the
+     * 100vw banner, the carousel edge glow) are intentionally wider than
+     * the page so they read as full-bleed. Contain that bleed here so it
+     * never becomes horizontal document overflow. `clip` rather than
+     * `hidden` so the vertical axis stays visible and no scroll container
+     * is created. */
+    overflow-x: clip;
   }
 
   .hero {

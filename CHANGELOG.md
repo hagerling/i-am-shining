@@ -37,6 +37,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and 
   banner and its mirrored reflection now carry `.banner-viewport-height`, which
   upgrades them to `100svh` where supported, so the retracting URL bar can no
   longer make the banner overflow the screen
+- Hero stretch was still inert after globalising `.has-photo .hero`: the
+  globalised rule and Astro's `.hero[data-astro-cid-…]` have identical
+  specificity (0,2,0) and the scoped one is emitted later, so `height: 12rem`
+  kept winning and the controls bar straddled the banner edge. Raised to
+  `html.has-photo .hero`. Same latent loss fixed on `.has-photo .hero h1 em`,
+  which was losing the white text fill to the gold-gradient scoped rule in dark
+  theme
+- Page no longer scrolls sideways. The decorative bleed (sunburst rays, cloud
+  puffs, the 100vw banner, the carousel edge glow) is now contained by
+  `overflow-x: clip` on `<html>` and `<main>`; the effects are unchanged, only
+  the off-screen part is clipped
+- Glass controls toolbar now wraps on narrow viewports. At 390px the
+  non-shrinking row ran 69px past the viewport edge, taking the Download button
+  with it; it now wraps to three rows and every control stays reachable
 
 ## [1.0.0] — 2026-04-24
 

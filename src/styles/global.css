@@ -322,6 +322,13 @@
    * block below. */
   html {
     scroll-behavior: smooth;
+    /* The decorative layers (sunburst rays, cloud puffs, carousel glow,
+     * banner kaleidoscope) are deliberately wider than the viewport so
+     * they read as full-bleed. Clip that bleed horizontally so it can
+     * never turn into a sideways scrollbar. `clip` rather than `hidden`:
+     * `hidden` would blockify into a scroll container on the root and
+     * break smooth scrolling and position: sticky. */
+    overflow-x: clip;
   }
 
   /* Visually hidden but readable by assistive tech */
