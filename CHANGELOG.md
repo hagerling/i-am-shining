@@ -22,6 +22,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and 
 - Banner is now a 100vh above-the-fold hero with the profile centred; the hero
   stretches so the profile circle's centre lands at 50vh
 - Testimonial section heading scaled up to `clamp(2.5rem, 6vw, 4.5rem)`
+- `src/pages/components/` is a dev-only route: `astro dev` still serves it, but
+  an `exclude-dev-only-routes` integration drops it (and its orphaned
+  stylesheet) from `dist/` and from the sitemap at build time
+
+### Fixed
+- Rotating profile coin was inert — Astro scoped `.profile-canvas-wrapper` /
+  `.profile-rotating` to the page, so the rules never matched the
+  React-rendered node. Wrapped in `:global(...)`
+- 100vh controls push-down was inert for the same reason: `.has-photo` sits on
+  `<html>` and `[data-controls-block]` on a React node, neither of which carry
+  the page scope attribute. Wrapped in `:global(...)`
+- Restored the mobile URL-bar guard on the full-height banner. The 100vh
+  banner and its mirrored reflection now carry `.banner-viewport-height`, which
+  upgrades them to `100svh` where supported, so the retracting URL bar can no
+  longer make the banner overflow the screen
 
 ## [1.0.0] — 2026-04-24
 

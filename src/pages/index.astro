@@ -173,12 +173,12 @@ import testimonials from '../data/testimonials.json';
    * (100vh − profile-slot-bottom) = (100vh − 50vh − radius) = 50vh − radius.
    * 2rem of that distance is already provided by the flex gap-8 between
    * the slot and the controls, so margin-top covers the remainder. */
-  .has-photo [data-controls-block] {
+  :global(.has-photo [data-controls-block]) {
     margin-top: max(0px, calc(50vh - min(45vw, 200px) - 2rem));
     transition: margin-top 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   }
   @supports (height: 100svh) {
-    .has-photo [data-controls-block] {
+    :global(.has-photo [data-controls-block]) {
       margin-top: max(0px, calc(50svh - min(45vw, 200px) - 2rem));
     }
   }
@@ -375,12 +375,12 @@ import testimonials from '../data/testimonials.json';
       from { transform: rotate(0deg); }
       to   { transform: rotate(360deg); }
     }
-    .profile-canvas-wrapper.profile-rotating {
+    :global(.profile-canvas-wrapper.profile-rotating) {
       animation: profile-spin 60s linear infinite;
     }
   }
   /* Smooth back to 0° when interaction starts (animation removed). */
-  .profile-canvas-wrapper {
+  :global(.profile-canvas-wrapper) {
     transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 

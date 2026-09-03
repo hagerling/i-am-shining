@@ -264,6 +264,20 @@
    * centred so they don't shift to the top-left of the banner. */
   .banner-img-spin { transform: translate(-50%, -50%); }
 
+  /* Mobile URL-bar guard for the full-height banner.
+   * HeaderGenerator renders the banner (and its mirrored reflection) from
+   * React and sets `height: 100vh` inline, because Astro's page-scoped
+   * styles never reach a React-rendered node. On mobile browsers 100vh
+   * ignores the retracting URL bar, so the banner overflows the screen.
+   * 100svh is the small-viewport height and fixes that. This lives in
+   * global.css (not the page's scoped block) so it actually matches, and
+   * needs !important purely because it is overriding an inline style. */
+  @supports (height: 100svh) {
+    .banner-viewport-height {
+      height: 100svh !important;
+    }
+  }
+
   .skip-link {
     position: absolute;
     left: -9999px;

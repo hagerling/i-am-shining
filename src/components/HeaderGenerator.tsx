@@ -334,6 +334,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
       {/* Full-bleed banner — breaks out of any max-width parent so it spans
           the viewport at the very top of the page. */}
       <div
+        className="banner-viewport-height"
         style={{
           position: 'relative',
           width: '100vw',
@@ -343,6 +344,8 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
           // Height is taller than the banner's native 4:1 to make room for the
           // profile picture overlap. The img uses object-fit: cover so the
           // kaleidoscope fills the slot without distortion — excess width crops.
+          // `banner-viewport-height` upgrades this to 100svh where supported,
+          // so the mobile URL bar can't make the banner overflow the screen.
           height: '100vh',
           overflow: 'hidden',
           boxShadow: '0 4px 32px rgba(0,0,0,0.45)',
@@ -470,6 +473,7 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
             src={imgUrl}
             alt=""
             draggable={false}
+            className="banner-viewport-height"
             style={{
               position: 'absolute',
               top: 0,
@@ -477,7 +481,9 @@ export function HeaderGenerator({ photoSrc, faceCenter, sampling, tintFilter, in
               width: '100%',
               // Match the original banner height — flipping it then exposes
               // the banner's BOTTOM rows at the reflection's top, so the
-              // mirror is seamless at the boundary.
+              // mirror is seamless at the boundary. Carries the same
+              // `banner-viewport-height` class so it tracks the banner when
+              // the 100svh guard kicks in.
               height: '100vh',
               objectFit: 'cover',
               transform: 'scaleY(-1)',
