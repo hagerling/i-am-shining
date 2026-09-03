@@ -157,13 +157,13 @@ import testimonials from '../data/testimonials.json';
    * applies (Astro scoped styles don't reach React-portaled elements). */
 
   /* When a photo is loaded, the hero text turns white for contrast on banner */
-  .has-photo .hero {
+  :global(.has-photo .hero) {
     background: transparent;
     /* Stretch so profile circle centre = 50vh = banner centre. */
     height: max(12rem, calc(50vh - min(45vw, 200px)));
   }
   @supports (height: 100svh) {
-    .has-photo .hero {
+    :global(.has-photo .hero) {
       height: max(12rem, calc(50svh - min(45vw, 200px)));
     }
   }
@@ -183,12 +183,12 @@ import testimonials from '../data/testimonials.json';
     }
   }
 
-  .has-photo .hero h1 {
+  :global(.has-photo .hero h1) {
     color: #fff;
     transition: color 0.5s ease;
   }
 
-  .has-photo .hero h1 em {
+  :global(.has-photo .hero h1 em) {
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
@@ -197,10 +197,10 @@ import testimonials from '../data/testimonials.json';
 
   /* When a photo is uploaded the hero always sits on the dark banner —
      theme switching must NOT change text colour. Only contrast matters. */
-  [data-theme="light"] .has-photo .hero h1 {
+  :global([data-theme="light"] .has-photo .hero h1) {
     color: #fff;
   }
-  [data-theme="light"] .has-photo .hero h1 em {
+  :global([data-theme="light"] .has-photo .hero h1 em) {
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
@@ -271,7 +271,7 @@ import testimonials from '../data/testimonials.json';
     -webkit-text-fill-color: transparent;
     font-size: 0.85em;
   }
-  .has-photo .hero-tagline {
+  :global(.has-photo .hero-tagline) {
     opacity: 0;
     pointer-events: none;
   }
@@ -294,7 +294,7 @@ import testimonials from '../data/testimonials.json';
     /* Subtle inner shadow for depth */
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.30);
   }
-  .has-photo .hero-i {
+  :global(.has-photo .hero-i) {
     color: #fff;
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
   }
